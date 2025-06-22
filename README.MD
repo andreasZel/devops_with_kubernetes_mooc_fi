@@ -42,7 +42,7 @@ Kubernetes then uses three main abstract terms:
 
 1. **POD**: a block that can contain one or more containers, kubernetes sees the POD, not the containers themselves ![PODS](./assets/PODS.png)
 2. **NODE**: a group of **PODS** ![NODES](./assets/NODES.png)
-3. **CLUSTER**: a group of **NODES**, overseen by a _MASTER NODE_ ![CLUSTERS](./assets/CLUSTERS.png)
+3. **CLUSTER**: a group machines, in case of kubernetes, **NODES** that work together, overseen by a _MASTER NODE_ ![CLUSTERS](./assets/CLUSTERS.png)
 
 We put in place those clusters using a **.yml** file that is called **DEPLOYMENT**.
 
@@ -56,4 +56,32 @@ This makes **scalability** and **maintenance** easier.
 ### Using Kubernetes
 
 We can use a lightweight Kubernetes distribution called **K3s**.
-To create clusters for it we use **Docker** and mainly a tool called **K3D**
+
+To create clusters for it we use **Docker** and mainly a tool called **K3D**.
+
+The reason for using k3d is that it enables us to create a cluster without worrying about virtual machines or physical machines.
+
+** This \_requires installing **kubectl** a commandline tool\_ **.
+
+## Using K3D
+
+A cluster is a group of machines, nodes, that work together - in this case, they are part of a Kubernetes cluster.
+
+Kubernetes cluster can be of any size - a single node cluster would consist of one machine that hosts the Kubernetes **control-plane (exposing API and maintaining the cluster)** and that cluster can then be expanded with up to 5000 nodes total, as of Kubernetes v1.18.
+
+So a node can be:
+
+1. **"server node"**, nodes **with control-plane**
+2. **"agent node"**, nodes **without** that role.
+
+To create a cluser we use:
+
+```bash
+k3d cluster create -a <<number of nodes>>
+```
+
+with `docker ps`, we can see that **two agent nodes** are created with **one server node as well**.
+
+We also see that port **6443** is opened to **"k3d-k3s-default-serverlb"**, a useful "load balancer" proxy, that'll **redirect a connection to 6443 into the server node**, and that's how we can access the contents of the cluster.
+
+The port on our machine that is mapped to 6443 is randomly choosen. We could opted out of the load balancer with `k3d cluster create -a 2 --no-lb`.
