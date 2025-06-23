@@ -116,3 +116,5 @@ to **start/stop** we use
 k3d cluster stop #stop cluster
 k3d cluster start #start cluster
 ```
+
+and to delete `k3d cluster delete`.
