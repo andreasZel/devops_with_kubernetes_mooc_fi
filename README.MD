@@ -85,3 +85,34 @@ with `docker ps`, we can see that **two agent nodes** are created with **one ser
 We also see that port **6443** is opened to **"k3d-k3s-default-serverlb"**, a useful "load balancer" proxy, that'll **redirect a connection to 6443 into the server node**, and that's how we can access the contents of the cluster.
 
 The port on our machine that is mapped to 6443 is randomly choosen. We could opted out of the load balancer with `k3d cluster create -a 2 --no-lb`.
+
+### kubeconfig
+
+A `kubeconfig` file will be created, this is used to organize information about clusters, users, namespaces, and authentication mechanisms.
+
+To access it we use:
+
+```bash
+k3d kubeconfig get k3s-default
+```
+
+we can use `kubectl` to modify the contents like:
+
+```bash
+kubectl config use-context k3d-k3s-default
+```
+
+In general `kubectl` will read **kubeconfig** from the location in **KUBECONFIG** environment value or by default from **~/.kube/config** and use the information to connect to the cluster.
+
+we can acess the cluster with:
+
+```bash
+kubectl cluster-info
+```
+
+to **start/stop** we use 
+
+```bash
+k3d cluster stop #stop cluster
+k3d cluster start #start cluster
+```
