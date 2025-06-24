@@ -40,7 +40,7 @@ First of all we have to move from a **"Monolith"** or a **single process model a
 
 Kubernetes then uses three main abstract terms:
 
-1. **POD**: a block that can contain one or more containers, kubernetes sees the POD, not the containers themselves ![PODS](./assets/PODS.png)
+1. **POD**: a block that can contain one or more containers, kubernetes sees the POD, not the containers themselves ![PODS](./assets/PODS.png)Pods are like containers of containers. It is used so that containers can share **Network** and **Storage**.  It's very much like how you have used containers to define environments for a single process. So when a pod is deleted, the containers will stop running and the data will be lost. 
 2. **NODE**: a group of **PODS** ![NODES](./assets/NODES.png)
 3. **CLUSTER**: a group machines, in case of kubernetes, **NODES** that work together, overseen by a _MASTER NODE_ ![CLUSTERS](./assets/CLUSTERS.png)
 
@@ -118,3 +118,40 @@ k3d cluster start #start cluster
 ```
 
 and to delete `k3d cluster delete`.
+
+## Deployment
+
+By default kubernetes uses `Registries` such as Dockerhub to have access to our images.
+
+We can use local images with `k3d image import <image-name>` and alter `deploymen`'s **imagePullPolicy** from **Always** to **IfNotPresent** or **Never**. The deployment can be edited after creation with `kubectl edit deployment <deployment-name>`.
+
+If we do want to deploy from a Repo we can use:
+
+```bash
+kubectl create deployment hashgenerator-dep --image=<user/image-name> deployment.apps/hashgenerator-dep created
+```
+
+This action created a few things for us to look at
+
+- a deployment resource
+- a pod resource
+
+In Kubernetes, all entities that exist are called **objects**. We can list all objects of a resource with `kubectl get RESOURCE`.
+
+so for pods:
+
+```bash 
+kubectl get pods
+```
+
+A `deployment` resource takes care of the deployment. It's a way to tell Kubernetes what container you want, how they should be running, and how many of them should be running.
+
+### ReplicaSets
+
+When we create a deployment a `ReplicaSet` object is created, it is used to tell how many replicas of a Pod we want, so It will delete or create Pods until the number of Pods we want is running. 
+
+ReplicaSets are managed by Deployments, there is need to define or modify them manually. If we want to manage the number of replicas, we can edit the Deployment and it will take care of modifying the ReplicaSet.
+
+
+
+
