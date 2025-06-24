@@ -152,6 +152,19 @@ When we create a deployment a `ReplicaSet` object is created, it is used to tell
 
 ReplicaSets are managed by Deployments, there is need to define or modify them manually. If we want to manage the number of replicas, we can edit the Deployment and it will take care of modifying the ReplicaSet.
 
+to view them we do as we did with pods:
+
+```bash
+kubectl get deployments
+```
+
+to see the output we use:
+
+```bash
+kubectl logs -f <pod-name>
+```
+
+A helpful list for other commands from docker-cli translated to kubectl is available here https://kubernetes.io/docs/reference/kubectl/docker-cli-to-kubectl/
 
 
 
