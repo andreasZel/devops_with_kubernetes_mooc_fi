@@ -1,3 +1,6 @@
 [submodule "1.1_Log_Output"]
 	path = 1.1_Log_Output
 	url = https://github.com/andreasZel/devops_with_kubernetes_1_1_Log_Output.git
+[submodule "project_server"]
+	path = project_server
+	url = https://github.com/andreasZel/devops_with_kubernetes_project_server.git
