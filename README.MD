@@ -128,7 +128,7 @@ We can use local images with `k3d image import <image-name>` and alter `deployme
 If we do want to deploy from a Repo we can use:
 
 ```bash
-kubectl create deployment hashgenerator-dep --image=<user/image-name> deployment.apps/hashgenerator-dep created
+kubectl create deployment <pod-name> --image=<user/image-name>
 ```
 
 This action created a few things for us to look at
