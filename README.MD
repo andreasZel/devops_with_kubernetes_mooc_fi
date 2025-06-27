@@ -166,5 +166,18 @@ kubectl logs -f <pod-name>
 
 A helpful list for other commands from docker-cli translated to kubectl is available here https://kubernetes.io/docs/reference/kubectl/docker-cli-to-kubectl/
 
+## Configuration: update image and scale up
 
+There are two methods to make changes to our deployment.
+
+1. **execute commands**:
+  we can always
+   - scale up with:
+     ```bash
+      kubectl scale deployment/<deployment-name> --replicas=<number-of-replicas>
+     ```
+   - alter image with:
+     ```bash
+      kubectl set image deployment/<deployment-name> <container-name>=<image>
+     ```
 
