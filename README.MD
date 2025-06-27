@@ -127,6 +127,7 @@ We can use local images with `k3d image import <image-name>` and alter `deployme
 
 If we do want to deploy from a Repo we can use:
 
+### Create Deployment
 ```bash
 kubectl create deployment <pod-name> --image=<user/image-name>
 ```
@@ -145,6 +146,14 @@ kubectl get pods
 ```
 
 A `deployment` resource takes care of the deployment. It's a way to tell Kubernetes what container you want, how they should be running, and how many of them should be running.
+
+### Delete Deployment
+
+to delete it we use:
+
+```bash
+kubectl delete deployment <deployment-name>
+```
 
 ### ReplicaSets
 
@@ -170,7 +179,7 @@ A helpful list for other commands from docker-cli translated to kubectl is avail
 
 There are two methods to make changes to our deployment.
 
-1. **execute commands**:
+1. **Imperative: Execute Commands**:
   we can always
    - scale up with:
      ```bash
@@ -180,4 +189,64 @@ There are two methods to make changes to our deployment.
      ```bash
       kubectl set image deployment/<deployment-name> <container-name>=<image>
      ```
+2. **Declarative: configuration with YAML**:
+  we can make a .yml file to define how things should run, rather than change. 
+  
+  To do that we need:
+  
+  1. To create a `manifest` directory
+  2. Create a .yml file
+     An example could be the following:
 
+   ```kubernetes
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+      name: hashgenerator-dep
+   spec:
+      replicas: 1
+      selector:
+         matchLabels:
+            app: hashgenerator
+      template:
+         metadata:
+            labels:
+               app: hashgenerator
+         spec:
+            containers:
+            - name: hashgenerator
+              image: jakousa/dwk-app1:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+   ```
+   this tells three main things:
+
+   1. **kind: Deployment** declares what kind, or type the created object has
+   2. **name: hashgenerator-dep** gives a name as metadata
+   3. **replicas: 1** declaring that there should be one pod to run the containers
+   4. **container** that is from, is named
+   `hashgenerator` with image `dwk-app1:b7fc18de2376da80ff0cfc72cf581a9f94d10e64`
+
+   ### Apply
+   to use it we have to `apply`:
+
+   ```bash
+      kubectl apply -f manifests/<yml file>
+   ```
+
+   ### Delete
+
+   To delete it we use:
+
+   ```bash
+   kubectl delete -f manifests/<yml file>
+   ```
+   
+   #### Versioning rather deleting
+   
+   ** **Instead of deleting it we can use a manifest from the interner and update it when we want to** **
+
+   to do so, we just update the tag in the deployments. Kubernetes will see to update it on it's own.
+
+   ## Anti-patterns
+
+   1. We should generally avoid deleting resources, so that kubernetes knows what and when to update.
+   2. It's better to be declerative rather that imperative in our approaches, so .yml files are preffered. 
