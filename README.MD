@@ -229,7 +229,7 @@ There are two methods to make changes to our deployment.
    to use it we have to `apply`:
 
    ```bash
-      kubectl apply -f manifests/<yml file>
+   kubectl apply -f manifests/<yml file>
    ```
 
    ### Delete
