@@ -129,7 +129,7 @@ If we do want to deploy from a Repo we can use:
 
 ### Create Deployment
 ```bash
-kubectl create deployment <pod-name> --image=<user/image-name>
+kubectl create deployment <deployment-name> --image=<user/image-name>
 ```
 
 This action created a few things for us to look at
@@ -244,7 +244,18 @@ There are two methods to make changes to our deployment.
    
    ** **Instead of deleting it we can use a manifest from the interner and update it when we want to** **
 
-   to do so, we just update the tag in the deployments. Kubernetes will see to update it on it's own.
+   to do so, we just update the tag in the deployments. Kubernetes will see to update it when we tell it. 
+
+   so a typical workflow would be:
+
+   ```bash
+   # build and push image to dockerhub
+   docker build -t <image>:<new_tag>
+   docker push <image-name>:tag
+
+   # update the deployment, by altering image tag in .yml and then
+   kubectl apply -f manifests/deployment.yaml
+   ```
 
    ## Anti-patterns
 
