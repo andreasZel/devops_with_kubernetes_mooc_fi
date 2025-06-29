@@ -261,3 +261,18 @@ There are two methods to make changes to our deployment.
 
    1. We should generally avoid deleting resources, so that kubernetes knows what and when to update.
    2. It's better to be declerative rather that imperative in our approaches, so .yml files are preffered. 
+
+   ## Debugging
+
+   To debug there are several options:
+
+   A common bug i found using **k3d** is `outdated docker`. 
+
+   In general tho, we can:
+
+   1. use commands: 
+      - `kubectl describe` which can tell us most of everything we need to know about any resource
+      - `kubectl logs` with which we can follow the logs of our possibly broken software
+      - `kubectl delete` which will simply delete the resource and in some cases, like with pods in deployment, a new one will be automatically released
+   2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard
+
