@@ -267,6 +267,12 @@ There are two methods to make changes to our deployment.
    To debug there are several options:
 
    A common bug i found using **k3d** is `outdated docker`. 
+   
+   Also, if errors persist with k3d cluster network, try creating with `localhost binding` to avoid host.docker.internal issues with:
+
+   ```bash
+   k3d cluster create k3s-default --api-port 127.0.0.1:6443
+   ```
 
    In general tho, we can:
 
@@ -274,5 +280,5 @@ There are two methods to make changes to our deployment.
       - `kubectl describe` which can tell us most of everything we need to know about any resource
       - `kubectl logs` with which we can follow the logs of our possibly broken software
       - `kubectl delete` which will simply delete the resource and in some cases, like with pods in deployment, a new one will be automatically released
-   2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard
+   2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard or [FreeLens](https://github.com/freelensapp/freelens), v1.3.2 currently worked in windows
 
