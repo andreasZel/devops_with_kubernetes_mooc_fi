@@ -300,4 +300,65 @@ kubectl port-forward <pod-name> 3000:3000
 
 **!! `We don't need to expose the port in our Dockerfile if we use Docker`, kubernetes ignores it when creating the pods in K3D**
 
+## External Connections
+
+To achieve an external connection in kubernetes we can use 3 ways:
+
+1. A `Service` resource, more precisely a `NodePort`
+2. An `Ingress` resource
+3. A `Gateway API`
+
+### Initial Steps
+
+To open the connection to extrenal resources we have to open some ports our nodes. Following the k3d documentation we can achieve that using:
+
+
+```bash
+# load balancer has 80 port by default
+# agent ports should be 30000-32767
+k3d cluster create --port <local-port>:<agent-port(30000-32767)>@agent:0 -p <local-port>:80@loadbalancer --agents 2
+```
+
+### Services 
+
+Service resources are essential for managing the application's accessibility, ensuring that it can be reached by connections originating both outside the cluster and from within. 
+
+These resources handle the routing and load balancing necessary to maintain seamless communication with the application, regardless of the dynamic nature of pod creation and termination.
+
+### Service Resource (NodePort)
+
+ **NodePorts** are simply ports that are opened by Kubernetes **to all of the nodes** and the service will handle requests in that port. 
+ 
+ *NodePorts are not flexible and require you to assign a different port for every application. As such NodePorts are not used in production but are helpful to know about.*
+
+ To create the service we:
+
+1. Declare that we want a Service
+2. Declare which port to listen to
+3. Declare the application where the request should be directed to
+4. Declare the port where the request should be directed to
+
+The service.yml should look like:
+ ```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hashresponse-svc
+spec:
+  type: NodePort
+  selector:
+    app: hashresponse # This is the app as declared in the deployment.
+  ports:
+    - name: http
+      nodePort: 30080 # This is the port that is available outside. Value for nodePort can be between 30000-32767
+      protocol: TCP
+      port: 1234 # This is a port that is available to the cluster, in this case it can be ~ anything
+      targetPort: 3000 # This is the target port
+ ```
+
+ then we apply it in the deployment
+
+ ```bash
+kubectl apply -f manifests/service.yaml
+ ```
 
