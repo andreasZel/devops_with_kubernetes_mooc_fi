@@ -257,6 +257,14 @@ There are two methods to make changes to our deployment.
    kubectl apply -f manifests/deployment.yaml
    ```
 
+   ### Use same updated image tag
+
+   If we want to use the same image tag because we updated it, instead of reapplying the yml (we cant update the image of deloyment because it has same tag) we can use:
+
+   ```bash
+   kubectl rollout restart deployment <deployment-name>
+   ``` 
+
    ## Anti-patterns
 
    1. We should generally avoid deleting resources, so that kubernetes knows what and when to update.
@@ -281,4 +289,15 @@ There are two methods to make changes to our deployment.
       - `kubectl logs` with which we can follow the logs of our possibly broken software
       - `kubectl delete` which will simply delete the resource and in some cases, like with pods in deployment, a new one will be automatically released
    2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard or [FreeLens](https://github.com/freelensapp/freelens), v1.3.2 currently worked in windows
+
+## Port Forwarding
+
+We can us `port-forward` to forward a local port to a pod. For example if we have a service (in a POD) that runs on port 3000, we can use:
+
+```bash
+kubectl port-forward <pod-name> 3000:3000
+```
+
+**!! `We don't need to expose the port in our Dockerfile if we use Docker`, kubernetes ignores it when creating the pods in K3D**
+
 
