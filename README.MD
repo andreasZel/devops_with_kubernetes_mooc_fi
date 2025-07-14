@@ -325,7 +325,7 @@ Service resources are essential for managing the application's accessibility, en
 
 These resources handle the routing and load balancing necessary to maintain seamless communication with the application, regardless of the dynamic nature of pod creation and termination.
 
-### Service Resource (NodePort)
+### 1. Service Resource (NodePort)
 
  **NodePorts** are simply ports that are opened by Kubernetes **to all of the nodes** and the service will handle requests in that port. 
  
@@ -361,4 +361,62 @@ spec:
  ```bash
 kubectl apply -f manifests/service.yaml
  ```
+
+### 2. Ingress (Incoming Network Access Resource)
+
+`Ingress` differentiates from Service Resource, because it works on **Application Layer (7)** while Service works on **Transport Layer (4)** of the `OSI Model`.
+
+Ingress can work by itself for **Routing** or in combination with a load balancer.
+
+It is implemented using different kinds of **controllers**, k3d provides [Traefik](https://traefik.io/traefik) by default, but we can use other ones like [Istio](https://istio.io/) and [Nginx Ingress Controller](https://github.com/kubernetes/ingress-nginx).
+
+#### Use an Ingress resource:
+
+1. `ClusterIP` Service.
+ 
+ To use this resource we need an `Internal IP` that can be accessed from the cluster. To do this we create a `ClusterIP` type Service.
+
+The yml file looks like so:
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hashresponse-svc # Name of service
+spec:
+  type: ClusterIP
+  selector:
+    app: hashresponse # This is the app as declared in the deployment.
+  ports:
+    - port: 2345 # let TCP Traffic from 
+      protocol: TCP
+      targetPort: 3000 # let TCP Traffic to
+```
+
+2. Actual `Ingress Service`:
+
+```yml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dwk-material-ingress # Name of Service 
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hashresponse-svc # Route all traffic to this port
+            port:
+              number: 2345 
+```
+
+Then apply both with: 
+
+```bash
+kubectl apply -f manifest
+```
+
 
