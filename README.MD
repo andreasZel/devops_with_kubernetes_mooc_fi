@@ -437,6 +437,44 @@ There are many kinds of Volumes in Kubernetes:
    - Moving the pod from another node will destroy the contents of the volume as the space is reserved from the node the pod is running on. 
 
    So, emptyDir Volumes are:
-    - ❌ Backing up a database
-    - ✅ Use as a **cache** as it *persists* between container restarts 
-    - ✅ Share files between two containers in a pod
+    - Bad ❌: for Backing up a database
+    - Good ✅: To use as a **cache** as it *persists* between container restarts 
+    - Good ✅: To **Share files** between two containers in a pod
+
+   ### Share data between two containers (in the same pod):
+   The way to add multiple containers within a pod is described in the **deployment**.
+   
+   We define:
+   - A volume, in this case type `emptyDir`
+   - `VolumeMounts` in each container with the path mount path 
+
+   ```bash
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: images-dep
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: images
+      template:
+        metadata:
+          labels:
+            app: images
+        spec:
+          volumes: # Define volume
+            - name: shared-image
+              emptyDir: {}
+          containers:
+            - name: image-finder
+              image: jakousa/dwk-app3-image-finder:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+              volumeMounts: # Mount volume
+              - name: shared-image
+                mountPath: /usr/src/app/files
+            - name: image-response
+              image: jakousa/dwk-app3-image-response:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+              volumeMounts: # Mount volume
+              - name: shared-image
+                mountPath: /usr/src/app/files
+   ``` 
