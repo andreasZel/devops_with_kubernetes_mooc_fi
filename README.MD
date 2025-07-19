@@ -159,7 +159,7 @@ kubectl delete deployment <deployment-name>
 
 When we create a deployment a `ReplicaSet` object is created, it is used to tell how many replicas of a Pod we want, so It will delete or create Pods until the number of Pods we want is running. 
 
-ReplicaSets are managed by Deployments, there is need to define or modify them manually. If we want to manage the number of replicas, we can edit the Deployment and it will take care of modifying the ReplicaSet.
+ReplicaSets are managed by Deployments, there is no need to define or modify them manually. If we want to manage the number of replicas, we can edit the Deployment and it will take care of modifying the ReplicaSet.
 
 to view them we do as we did with pods:
 
@@ -290,6 +290,8 @@ There are two methods to make changes to our deployment.
       - `kubectl delete` which will simply delete the resource and in some cases, like with pods in deployment, a new one will be automatically released
    2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard or [FreeLens](https://github.com/freelensapp/freelens), v1.3.2 currently worked in windows
 
+# Networking
+
 ## Port Forwarding
 
 We can us `port-forward` to forward a local port to a pod. For example if we have a service (in a POD) that runs on port 3000, we can use:
@@ -300,7 +302,7 @@ kubectl port-forward <pod-name> 3000:3000
 
 **!! `We don't need to expose the port in our Dockerfile if we use Docker`, kubernetes ignores it when creating the pods in K3D**
 
-## External Connections
+## External Connections 
 
 To achieve an external connection in kubernetes we can use 3 ways:
 
@@ -419,4 +421,22 @@ Then apply both with:
 kubectl apply -f manifest
 ```
 
+### 3. Gateway API
 
+`Gateway API` is an evolving **set of resources and configurations** designed to **manage network traffic within** Kubernetes **clusters**.
+
+
+# Storage
+
+Like Docker, kubernetes uses `Volumes`to **persist** data. 
+
+There are many kinds of Volumes in Kubernetes:
+
+1. `emptyDir volumes`: are shared filesystems **inside a pod**.
+   - This means that ${{\color{red} \ their \ lifecycle \ is \ tied \ to \ a \ pod\ !}}$. When the pod is destroyed the data is lost.
+   - Moving the pod from another node will destroy the contents of the volume as the space is reserved from the node the pod is running on. 
+
+   So, emptyDir Volumes are:
+    - ❌ Backing up a database
+    - ✅ Use as a **cache** as it *persists* between container restarts 
+    - ✅ Share files between two containers in a pod
