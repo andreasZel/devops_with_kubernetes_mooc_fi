@@ -478,3 +478,124 @@ There are many kinds of Volumes in Kubernetes:
               - name: shared-image
                 mountPath: /usr/src/app/files
    ``` 
+
+2. `persistent volumes`
+
+    A **Persistent Volume (PV)** is a **cluster-wide resource**, that represents a piece of storage in the cluster. So the lifecycle is not tide to a POD.
+
+    > PVs are bound to a POD, this ensures that the PV resource is exclusively used by the pod it's bound to
+
+    Persistent Volumes can be backed by various types of storage such as local disk, NFS, cloud storage, etc. 
+
+    ### Backing up Data
+
+    When using a cloud provider, such as Google Kubernetes Engine, it is **the cloud provider that takes care of backing storage** and the **Persistent Volumes** that we can use.
+
+    If we run our **own cluster** or use a **local cluster such as k3s** for development, we need to **take care of the storage system and Persistent Volumes ourselfs**.
+
+    #### K3s Persistent Volumes
+
+    An easy option that we can use with **K3s** is a **local PersistentVolume** that uses **a path in a cluster node as the storage**. This solution ties the volume to a particular node and `if the node becomes unavailable, the storage is not usable`, so it's **not suitable for production!**.
+
+
+    ### Steps to create/use PVs (in k3d)
+
+    1. `Create the actual path` in the node (k3d is a container). We can do it with **docker exec**
+
+        ```bash
+        docker exec k3d-k3s-default-agent-0 mkdir -p /tmp/kube
+        ```
+    
+    2. `Define a PV .yml file`, so that kubernetes knows how to create the PV and **which nodes are goint to use it**:
+
+        ```bash
+          ## persistentvolume.yaml
+          #-------------------------
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: example-pv
+          spec:
+            storageClassName: my-example-pv # this is the name we are using later to claim this volume
+            capacity:
+              storage: 1Gi # Could be e.q. 500Gi. Small amount is to preserve space when testing locally
+            volumeMode: Filesystem # This declares that it will be mounted into pods as a directory
+            accessModes:
+            - ReadWriteOnce
+            local:
+              path: /tmp/kube
+            nodeAffinity: ## This is only required for local, it defines which nodes can access it
+              required:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                    - k3d-k3s-default-agent-0
+        ```
+
+    3. `Create a Persistent Volume Claim (PVC)`, Which is a **request for the storage**.
+    
+        PVC is a way to define the Requirements to be satisfied by a PV. Kubernetes finds a PV satisfying the needs or creates one, then binds it to the PVC.
+
+        Once bound, the PersistentVolumeClaim is **"locked"** and can only be used **by one Pod** (depending on the access mode specified). This ensures that the PV resource is **exclusively used by the pod it's bound to**.
+
+        If there is no suitable Persistent Volume available, the PVC will stay in the "Pending" state, waiting for a suitable PV. 
+        
+        So, 
+
+        > PVs -> physical volume (the actual storage in our infrastructure).
+        PVCs -> the means by which pods claim this storage for their use.
+
+        We can create one like so: 
+
+        ```bash
+        # persistentvolumeclaim.yaml
+        #-------------------
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: image-claim # name of the volume claim, this will be used in the deployment
+        spec:
+          storageClassName: my-example-pv # this is the name of the persistent volume we are claiming
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+        ```
+
+    4. `Use the PV and PVC` in the `deployment`:
+
+        ```bash
+        # ...
+        spec:
+          volumes:
+            - name: shared-image
+              persistentVolumeClaim: # we add PVC
+                claimName: image-claim
+          containers:
+            - name: image-finder
+              image: jakousa/dwk-app3-image-finder:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+              volumeMounts:
+              - name: shared-image # use as before
+                mountPath: /usr/src/app/files
+            - name: image-response
+              image: jakousa/dwk-app3-image-response:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+              volumeMounts:
+              - name: shared-image # use as before
+                mountPath: /usr/src/app/files
+        ```
+
+        
+
+
+
+
+
+
+
+
+
+
+
