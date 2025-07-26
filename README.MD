@@ -587,6 +587,15 @@ There are many kinds of Volumes in Kubernetes:
                 mountPath: /usr/src/app/files
         ```
 
+        📝 Note:
+        
+         Always apply the PVs and PVCs first! This is done by:
+         ```bash
+          kubectl apply -f persistentVolumesDir -f manifest
+         ```
+        
+        
+
         
 
 
