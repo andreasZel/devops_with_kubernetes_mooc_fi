@@ -593,6 +593,61 @@ There are many kinds of Volumes in Kubernetes:
          ```bash
           kubectl apply -f persistentVolumesDir -f manifest
          ```
+
+# Networking
+
+Kubernetes includes a **DNS service**. 
+
+`Containers` in a `pod share the network`.
+
+For communication `between Pods`, a `Service` (like ClusterIp) is used as they expose the Pods as a network service.
+
+Alternatively each **Pod** has an **IP created by Kubernetes**.
+
+We can get the **ip of the service** using the **get** command:
+
+```bash
+kubectl get svc
+
+# output
+
+#NAME               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+#todo-backend-svc   ClusterIP   10.43.89.182   <none>        2345/TCP   2d1h
+```
+
+and use `exec` command to check for the status of the pod:
+
+```bash
+kubectl exec -it my-busybox -- wget -qO - http://10.43.89.182:2345
+```
+
+or use the **ip of pod it'self**:
+
+```bash
+kubectl describe pod <pod-name>
+
+# output
+
+#Name:             todo-backend-dep-84fcdff4cc-2x9wl
+#Namespace:        default
+#Priority:         0
+#Service Account:  default
+#Node:             k3d-k3s-default-agent-0/192.168.176.5
+#Start Time:       Mon, 08 Apr 2024 23:27:00 +0300
+#Labels:           app=todo-backend
+#                  pod-template-hash=84fcdff4cc
+#Annotations:      <none>
+#Status:           Running
+#IP:               10.42.0.63
+```
+
+then use it with `exec` command as well, but with the ip used in the container:
+
+```bash
+kubectl exec -it my-busybox wget -qO - http://10.42.0.63:3000
+```
+
+
         
         
 
