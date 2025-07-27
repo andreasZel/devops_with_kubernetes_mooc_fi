@@ -290,6 +290,33 @@ There are two methods to make changes to our deployment.
       - `kubectl delete` which will simply delete the resource and in some cases, like with pods in deployment, a new one will be automatically released
    2. use an IDE like [Lens](https://k8slens.dev/) to view everything in a dashboard or [FreeLens](https://github.com/freelensapp/freelens), v1.3.2 currently worked in windows
 
+  ### Using a Pod 
+  We can use a pod described with a `.yaml` file to test for connectivity or status of pods.
+
+  *A generic container we can use is `busybox`. It has basic unix functionalities.*
+
+  When we are done, we can delete the pod and it will be gone forever. So this cannot be used in production, because unlike **Deployment**, kubernetes won't spin up a new pod in it's place.
+
+  We can create a pod like:
+
+  ```docker
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: my-busybox
+    labels:
+      app: my-busybox
+  spec:
+    containers:
+    - image: busybox
+      command:
+        - sleep
+        - "3600"
+      imagePullPolicy: IfNotPresent
+      name: busybox
+    restartPolicy: Always
+  ```
+
 # Networking
 
 ## Port Forwarding
@@ -425,6 +452,58 @@ kubectl apply -f manifest
 
 `Gateway API` is an evolving **set of resources and configurations** designed to **manage network traffic within** Kubernetes **clusters**.
 
+## DNS Within Kubernetes
+
+Kubernetes includes a **DNS service**. 
+
+`Containers` in a `pod share the network`.
+
+For communication `between Pods`, a `Service` (like ClusterIp) is used as they expose the Pods as a network service.
+
+Alternatively each **Pod** has an **IP created by Kubernetes**.
+
+We can get the **ip of the service** using the **get** command:
+
+```bash
+kubectl get svc
+
+# output
+
+#NAME               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+#todo-backend-svc   ClusterIP   10.43.89.182   <none>        2345/TCP   2d1h
+```
+
+and use `exec` command to check for the status of the pod:
+
+```bash
+kubectl exec -it my-busybox -- wget -qO - http://10.43.89.182:2345
+```
+
+or use the **ip of pod it'self**:
+
+```bash
+kubectl describe pod <pod-name>
+
+# output
+
+#Name:             todo-backend-dep-84fcdff4cc-2x9wl
+#Namespace:        default
+#Priority:         0
+#Service Account:  default
+#Node:             k3d-k3s-default-agent-0/192.168.176.5
+#Start Time:       Mon, 08 Apr 2024 23:27:00 +0300
+#Labels:           app=todo-backend
+#                  pod-template-hash=84fcdff4cc
+#Annotations:      <none>
+#Status:           Running
+#IP:               10.42.0.63
+```
+
+then use it with `exec` command as well, but with the ip used in the container:
+
+```bash
+kubectl exec -it my-busybox wget -qO - http://10.42.0.63:3000
+```
 
 # Storage
 
@@ -594,58 +673,7 @@ There are many kinds of Volumes in Kubernetes:
           kubectl apply -f persistentVolumesDir -f manifest
          ```
 
-# Networking
 
-Kubernetes includes a **DNS service**. 
-
-`Containers` in a `pod share the network`.
-
-For communication `between Pods`, a `Service` (like ClusterIp) is used as they expose the Pods as a network service.
-
-Alternatively each **Pod** has an **IP created by Kubernetes**.
-
-We can get the **ip of the service** using the **get** command:
-
-```bash
-kubectl get svc
-
-# output
-
-#NAME               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
-#todo-backend-svc   ClusterIP   10.43.89.182   <none>        2345/TCP   2d1h
-```
-
-and use `exec` command to check for the status of the pod:
-
-```bash
-kubectl exec -it my-busybox -- wget -qO - http://10.43.89.182:2345
-```
-
-or use the **ip of pod it'self**:
-
-```bash
-kubectl describe pod <pod-name>
-
-# output
-
-#Name:             todo-backend-dep-84fcdff4cc-2x9wl
-#Namespace:        default
-#Priority:         0
-#Service Account:  default
-#Node:             k3d-k3s-default-agent-0/192.168.176.5
-#Start Time:       Mon, 08 Apr 2024 23:27:00 +0300
-#Labels:           app=todo-backend
-#                  pod-template-hash=84fcdff4cc
-#Annotations:      <none>
-#Status:           Running
-#IP:               10.42.0.63
-```
-
-then use it with `exec` command as well, but with the ip used in the container:
-
-```bash
-kubectl exec -it my-busybox wget -qO - http://10.42.0.63:3000
-```
 
 
         
