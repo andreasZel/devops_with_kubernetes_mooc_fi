@@ -505,6 +505,12 @@ then use it with `exec` command as well, but with the ip used in the container:
 kubectl exec -it my-busybox wget -qO - http://10.42.0.63:3000
 ```
 
+finally, we can use the `svc created`, so if we defined a ClusterIP service for **todo-backend** as **todo-backend-svc**, we can use it as:
+
+```bash
+kubectl exec -it my-busybox -- wget -qO http://todo-backend-svc:2345
+```
+
 # Storage
 
 Like Docker, kubernetes uses `Volumes`to **persist** data. 
@@ -672,15 +678,59 @@ There are many kinds of Volumes in Kubernetes:
          ```bash
           kubectl apply -f persistentVolumesDir -f manifest
          ```
+# Namespaces
 
+`Namespaces` are used to keep `resources Seperated`. 
 
+1. Seperate environments
 
+*A common way to use it is to separate environments such as production, testing, staging*.
 
+2. Utilize limited Resources
+
+But a company could also benefit if only uses 1 cluster. Multiple projects can use namespaces to `split the cluster into virtual clusters`, one for each project.
         
-        
+## Communication using namespaces
 
-        
+`DNS entry` for services `includes the namespace` so we can still have projects communicate with each other if needed through `service.namespace address`.
 
+This means that we can use it as:
+> http://{service-name}.{namespace}
+        
+## Create a namespace
+
+We can create a namespace imperative and declerative
+
+1. with the imperative way we use:
+   ```bash
+   kubectl create namespace example-namespace
+   ``` 
+2. with declerative we add it to our `deployment`.yml file:
+```docker
+# ...
+metadata:
+  namespace: example-namespace
+  name: example
+# ...
+```
+ \
+we can also set the namespace to be used by default with: 
+
+```bash
+kubectl config set-context --current --namespace=<name>
+```
+
+or use the  `kubens` tools. 
+
+It provides `kubectx` command, that let us change cluster we are using.
+
+And `change the default namespace easily`.
+
+> !! ⚠️ IMPORTANT !!
+
+Namespaces should be kept separate. Critical software should be in a seperated cluster.
+
+An administrator should set a `ResourceQuota` for that namespace, so that we can safely run anything there.
 
 
 
