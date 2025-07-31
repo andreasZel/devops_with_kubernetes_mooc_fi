@@ -732,9 +732,19 @@ Namespaces should be kept separate. Critical software should be in a seperated c
 
 An administrator should set a `ResourceQuota` for that namespace, so that we can safely run anything there.
 
+## Listing namespaces 
 
+we can get namespaces using the `-n` flag:
 
+```bash
+kubectl get pods -n kube-system
+```
 
+or use `--all-namespaces`:
+
+```bash
+kubectl get all --all-namespaces
+```
 
 
 
