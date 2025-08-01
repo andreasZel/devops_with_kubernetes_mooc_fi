@@ -705,7 +705,7 @@ We can create a namespace imperative and declerative
    ```bash
    kubectl create namespace example-namespace
    ``` 
-2. with declerative we add it to our `deployment`.yml file:
+2. with declerative we add it to our `deployment` or `any other Service` .yml file:
 ```docker
 # ...
 metadata:
