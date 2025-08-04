@@ -770,8 +770,57 @@ or use `--all-namespaces`:
 kubectl get all --all-namespaces
 ```
 
+# Labels
 
+Labels help:
 
+1. in **seperating applications** from others inside a **namespace**.
+2. **grouping** different resources together.
+3. **Configure pods** to be in a **wanted Node** with `nodeSelector`, an example would be *nodes* known to have *higher speed network*. 
+
+## Adding a label
+
+labels can be added per namespace. So we can have **same labels in different namespaces**. We can add them using:
+
+```bash 
+# great importance pod
+kubectl label pod hashgenerator-dep-7b9b88f8bf-lvcv4 importance=great  
+```
+
+## listing labels
+
+we can list labeled resources by:
+
+```bahs
+kubectl get pod -l importance=great
+```
+
+## Configure Nodes with `NodeSelector`
+
+we can pick which nodes to assign a pod using `NodeSelector`. For example an excellent Quality Network:
+
+```yml 
+# deployment decleration
+    ...
+    spec:
+      containers:
+        - name: hashgenerator
+          image: jakousa/dwk-app1:b7fc18de2376da80ff0cfc72cf581a9f94d10e64
+      nodeSelector:
+        networkquality: excellent
+```
+
+if we don't have any nodes qualified as "excellent", the pod will be in statur "PENDING", if we add one then the pod will run into it:
+
+```bash
+kubectl label nodes k3d-k3s-default-agent-1 networkquality=excellent
+```
+
+> !! ⚠️ IMPORTANT !!
+
+By default kubernetes will use different strategies to avoid high network latency such as [**affinity** and **anti-affinity**](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
+
+`NodeSelector` is best suited for cases such as picking nodes based to if they use SSD or HDD. Other tasks are better handled by Kubernetes, **with our touch of configuration of rules**.
 
 
 
