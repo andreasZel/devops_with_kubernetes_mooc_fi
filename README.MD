@@ -822,5 +822,52 @@ By default kubernetes will use different strategies to avoid high network latenc
 
 `NodeSelector` is best suited for cases such as picking nodes based to if they use SSD or HDD. Other tasks are better handled by Kubernetes, **with our touch of configuration of rules**.
 
+# Secrets and ConfigMaps Services
 
+`Secrets` are for **sensitive information** that are given to **containers on runtime**.
 
+`ConfigMaps` are quite much like secrets but they may contain **any kind of configurations**.
+
+1. Secrets:
+
+   Secrets are **Services**. We need to define a .yml file. We need to give:
+   1. a name to the service to be used
+   2. a name to the variable used in the container
+
+   so, a **yml file** example would look like this:
+   ```yml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: pixabay-apikey # Name of Service
+    data:
+      # Name of key 
+      API_KEY: aHR0cDovL3d3dy55b3V0dWJlLmNvbS93YXRjaD92PWRRdzR3OVdnWGNR
+   ```
+
+   and we can use it in the **deployment**, either with
+
+   1. **longer** form definition
+
+   ```yml
+    # ...
+    containers:
+      - name: imageagain
+        env:
+          - name: API_KEY # ENV name passed to container
+            valueFrom:
+              secretKeyRef:
+                name: pixabay-apikey
+                key: API_KEY # ENV name in the secret
+   ```
+
+   2. or the **shorter**, where we define a {secret-service-name}-{secret-variable}:
+
+   ```yml
+    # ...
+    containers:
+      - name: imageagain
+        envFrom:
+          - secretRef:
+              name: pixabay-apikey
+   ```
