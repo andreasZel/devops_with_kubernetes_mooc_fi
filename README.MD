@@ -828,7 +828,7 @@ By default kubernetes will use different strategies to avoid high network latenc
 
 `ConfigMaps` are quite much like secrets but they may contain **any kind of configurations**.
 
-1. Secrets:
+## Secrets:
 
    Secrets are **Services**. We need to define a .yml file. We need to give:
    1. a name to the service to be used
@@ -871,3 +871,120 @@ By default kubernetes will use different strategies to avoid high network latenc
           - secretRef:
               name: pixabay-apikey
    ```
+
+### Secret encoding, decoding
+
+There are multiple solutions for secret management depending on the platform. 
+
+Cloud service providers may have their own solution, like **Google Cloud Secret Manager** or **AWS Secrets Manager**. For a Kubernetes native solution, we could use **SealedSecrets**.
+
+One approach used in the module is using:
+
+1. [`SOPS`](https://github.com/getsops/sops), a **tool made by mozilla** to **edit, manage and store** encypted secrets (it can handle yaml files, so docker compose files as well).
+
+2. [`age`](https://github.com/FiloSottile/age), a tool dedicated to encryption alone.
+
+So, `SOPS` will **manage the keys** and `age` will handle the **encyption-decryption**.
+
+First we create a key:
+
+```bash
+age-keygen -o key.txt
+# Public key: age17mgq9ygh23q0cr00mjn0dfn8msak0apdy0ymjv5k50qzy75zmfkqzjdam4
+```
+
+public and secret keys are in the **key.txt** file.
+
+then we encypt the .yaml file, we can add a **regex** with the **--encrypted-regex** flag, meaning only the values matched with this regex will be encypted:
+
+```bash
+sops --encrypt \
+  --age age17mgq9ygh23q0cr00mjn0dfn8msak0apdy0ymjv5k50qzy75zmfkqzjdam4 \
+  --encrypted-regex '^(data)$' \
+  secret.yaml > secret.enc.yaml
+```
+
+The secret.enc.yaml could look like this:
+
+```yml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pixabay-apikey
+data:
+  API_KEY: ENC[AES256_GCM,data:geKXBLn4kZ9A2KHnFk4RCeRRnUZn0DjtyxPSAVCtHzoh8r6YsCUX3KiYmeuaYixHv3DRKHXTyjg=,iv:Lk290gWZnUGr8ygLGoKLaEJ3pzGBySyFJFG/AjwfkJI=,tag:BOSX7xJ/E07mXz9ZFLCT2Q==,type:str]
+sops:
+  kms: []
+  gcp_kms: []
+  azure_kv: []
+  hc_vault: []
+  age:
+    - recipient: age17mgq9ygh23q0cr00mjn0dfn8msak0apdy0ymjv5k50qzy75zmfkqzjdam4
+      enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDczBhbGNxUkc4R0U0SWZI
+        OEVYTEdzNUlVMEY3WnR6aVJ6OEpGeCtJQ1hVCjVSbDBRUnhLQjZYblQ0UHlneDIv
+        UmswM2xKUWxRMHZZQjVJU21UbDNEb3MKLS0tIGhOMy9lQWx4Q0FUdVhoVlZQMjZz
+        dDEreFAvV3Nqc3lIRWh3RGRUczBzdXcKh7S4q8qp5SrDXLQHZTpYlG43vLfBlqcZ
+        BypI8yEuu18rCjl3HJ+9jbB0mrzp60ld6yojUnaggzEaVaCPSH/BMA==
+        -----END AGE ENCRYPTED FILE-----
+  lastmodified: "2021-10-29T12:20:40Z"
+  mac: ENC[AES256_GCM,data:qhOMGFCDBXWhuildW81qTni1bnaBBsYo7UHlv2PfQf8yVrdXDtg7GylX9KslGvK22/9xxa2dtlDG7cIrYFpYQPAh/WpOzzn9R26nuTwvZ6RscgFzHCR7yIqJexZJJszC5yd3w5RArKR4XpciTeG53ygb+ng6qKdsQsvb9nQeBxk=,iv:PZLF3Y+OhtLo+/M0C0hqINM/p5K94tb5ZGc/OG8loJI=,tag:ziFOjWuAW/7kSA5tyAbgNg==,type:str]
+  pgp: []
+  encrypted_regex: ^(data)$
+  version: 3.7.1
+```
+
+Now we can safely save the encrypted file. Then when we need to use it we can **decrypt** the file using:
+
+```bash 
+sops --decrypt secret.enc.yaml | kubectl apply -f -
+```
+
+this way we don't create the plain **secret.yaml** file, we **just pipe it to the apply command**. Or we can create it and then apply it:
+
+```bash
+export SOPS_AGE_KEY_FILE=$(pwd)/key.txt
+
+sops --decrypt secret.enc.yaml > secret.yaml
+```
+
+# ConfigMaps
+
+`ConfigMaps` are similar but the **data doesn't have to be encoded and is not encrypted**.
+
+For example we can define a ConfigMap with a file and contents we can use, so changing the file in the node, we can change the env variables in our container:
+
+1. define the ConfigMap Service:
+
+```yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-configmap
+data:
+  serverconfig.txt: |
+    maxplayers=12
+    difficulty=2
+```
+
+and use it directly as volume, no need for PV or PVC:
+
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: game-server
+spec:
+  containers:
+    - name: game
+      image: mygame/server:latest
+      volumeMounts:
+        - name: config-volume
+          mountPath: /etc/game/
+          readOnly: true
+  volumes:
+    - name: config-volume
+      configMap:
+        name: example-configmap
+```
