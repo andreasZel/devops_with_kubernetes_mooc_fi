@@ -702,6 +702,115 @@ There are many kinds of Volumes in Kubernetes:
          ```bash
           kubectl apply -f persistentVolumesDir -f manifest
          ```
+
+## StatefulSets
+
+  In kubernetes Deployment creates replicas of pods. When scaling and read-write data, PVs can be troublesome.
+
+  `StatefulSets` solve that problem by ensuring an **identical** pod will replace the one that died. If it is scaled **each copy will have it's own storage**. It's stateless applications.
+
+  They are ideal in cases we want the data to be saved within the application, not outside. 
+
+  One key advantage of using StatefulSets is that they ensure data safety by not deleting the associated volumes when the StatefulSet is deleted.
+
+  ### using StatefulSets
+
+  To use StatefulSets, we need a **"headless Service"** over it. Basically a **ClusterIP** Service that let's us *access pods directly*, without reverse proxy or load balancing. 
+  
+  This can be achieved using `ClusteIP: None`. For example, let's say we want a Redis and an application to use it:
+
+  ```yml
+    ## Cluster IP (headless Service)
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: redis-svc
+      labels:
+        app: redis
+    spec:
+      ports:
+      - port: 6379
+        name: web
+      clusterIP: None
+      selector:
+        app: redisapp
+  ```
+
+  ```yml
+    # statefulset with Redis and app using it
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: redis-stset
+    spec:
+      serviceName: redis-svc
+      replicas: 2
+      selector:
+        matchLabels:
+          app: redisapp
+      template:
+        metadata:
+          labels:
+            app: redisapp
+        spec:
+          containers:
+            - name: redisfiller
+              image: jakousa/dwk-app5:54203329200143875187753026f4e93a1305ae26
+            - name: redis
+              image: redis:5.0
+              ports:
+                - name: web
+                  containerPort: 6379
+              volumeMounts:
+                - name: redis-data-storage
+                  mountPath: /data
+      volumeClaimTemplates:
+        - metadata:
+            name: redis-data-storage
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            storageClassName: local-path
+            resources:
+              requests:
+                storage: 100Mi
+  ```
+
+  The difference between Deployment, is that we use `volumeClaimTemplate` to claim it's own volume in each pod. This means that we don't need a PVC, it is created automatically.
+
+  We can ping or nslookup the redis-svc thanks to ClusterIP. If we now delete a pod, it a new **one identical will be created** even with the **same name**.
+
+> !! ✅ TIP !!
+
+  we can combine files, eg. the statefulSet.yml and the ClusterIP, as with any resource:
+
+  ```yml
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: redis-stset
+    spec:
+      serviceName: redis-svc
+      replicas: 2
+      selector:
+        matchLabels:
+          app: redisapp
+      # more rows
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: redis-svc
+      labels:
+        app: redis
+    spec:
+      ports:
+      - port: 6379
+        name: web
+      clusterIP: None
+      selector:
+        app: redisapp
+  ```
+
 # Namespaces
 
 `Namespaces` are used to keep `resources Seperated`. 
@@ -988,3 +1097,4 @@ spec:
       configMap:
         name: example-configmap
 ```
+
