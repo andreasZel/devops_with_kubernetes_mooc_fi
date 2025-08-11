@@ -1098,3 +1098,143 @@ spec:
         name: example-configmap
 ```
 
+# Jobs and CronJobs Resources
+
+## Jobs Resources
+
+`Jobs Resources` are resources used to run workloads that are not continuous services, 
+but are supposed to **run from start to end**. 
+
+Jobs have **status** in order for them to be **monitored** and to know when they are finished.
+
+Jobs can be **configured** so that they **run multiple instances of the same task** 
+1. concurrently.
+2. **sequentially**.
+3. **until a set number of successful completions** have been achieved.
+
+These are very nice for **backups**. 
+
+We can create a `bash sript` that takes an **env URL variable**, the db url and saves a backup 
+using pgdump:
+
+```bash
+<strong>#!/usr/bin/env bash</strong>
+set -e
+
+if [ $URL ]
+then
+  pg_dump -v $URL > /usr/src/app/backup.sql
+
+  echo "Not sending the dump actually anywhere"
+  # curl -F ‘data=@/usr/src/app/backup.sql’ https://somewhere
+fi
+```
+
+here we just save it locally, but as we see in the comments, we can **send the backup** as a form file upload (field named **data**) to the URL **https://somewhere** or **whatever service holds the backups**.
+
+An outside of the cluster service is used for safety. If cluster is damaged, the backups will be available.
+
+Then we create an image that uses this file as:
+
+```yml
+  FROM alpine:latest
+
+  # Install bash and postgresql client tools (pg_dump)
+  RUN apk add --no-cache bash postgresql-client
+
+  # Copy the backup script into the image
+  COPY backup.sh /usr/local/bin/backup.sh
+
+  # Make sure the script is executable
+  RUN chmod +x /usr/local/bin/backup.sh
+
+  # Set the backup script as the container entrypoint
+  ENTRYPOINT ["/usr/local/bin/backup.sh"]
+```
+
+We have to use this image in a `Job Resource`:
+
+```yml
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: backup
+  spec:
+    template:
+      spec:
+        containers:
+        - name: backup
+          image: <our-image>
+          env:
+            - name: URL
+              value: "postgres://postgres:example@postgres-svc:5432/postgres"
+        restartPolicy: Never # This time we'll run it only once
+```
+
+`restartPolicy: Never` just runs it once, but **we can force it to retry for a number of times**
+by defining `backoffLimit`.
+
+Now we can create a statefulset postgres resource with a headles Service on top and take a backup from it:
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+  labels:
+    app: postgres
+spec:
+  ports:
+  - port: 5432
+    name: web
+  clusterIP: None
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-ss
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:13.0
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+          - name: POSTGRES_PASSWORD
+            value: "example"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 100Mi
+```
+
+## CronJobs Resources
+
+CronJobs are similar to Jobs but they run on schedule. 
+
+
+
+
+
+
