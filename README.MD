@@ -1233,6 +1233,127 @@ spec:
 
 CronJobs are similar to Jobs but they run on schedule. 
 
+# Monitoring the cluster
+
+To monitor our cluster we will install some tools. These will be `Promethius` **for monitoring the cluster**, `Graphala` **to view the data**. 
+
+## `Helm`
+
+  To monitor our cluster we need to install some packages. So first we need
+  to install a **kubernetes package manager**: `Helm`.
+
+  To install it we download the binary file, save it in our pc and add it to 
+  the **path**.
+
+  ### Charts
+
+  Helm uses a packaging format called `charts`. These are used to define dependencies of an application.
+
+  ### Repos
+
+  `Repos` in Helm are **collections of charts** stored in one place, accessible via a URL
+
+  To add a repo we use:
+
+  ```bash
+  helm repo add <custom-name> <repo-url>
+  ```
+
+  Then to update the cache with the latest verion we use:
+
+  ```bash
+  helm repo update
+  ```
+
+  1. (add repo) So we can add `Promitheus` repo by:
+
+  ```bash
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm repo add stable https://charts.helm.sh/stable
+  helm repo update
+  ```
+
+  2. (install) we can now install the `kube-prometheus-stack`, preferrably in a different namespace to be distinct `prometheus`:
+
+  ```bash
+  kubectl create namespace prometheus
+
+  helm install prometheus-community/kube-prometheus-stack --generate-name --namespace prometheus
+  ```
+
+  This adds a lot of extra custom resources that are not in kubernetes by default.
+
+  We can use `helm list -n prometheus` to view all our resources.
+  
+  And `helm delete [name]` to delete them.
+
+## Graphala
+
+We can now add graphala. We first need to find it in helm:
+
+```bash
+kubectl get po -n prometheus
+#...
+NAME                                                              READY   STATUS    RESTARTS
+kube-prometheus-stack-1602180058-grafana-59cd48d794-4459m         2/2     Running   0          53s
+```
+
+Then we can port forward it to port 3000 and access it from browser:
+
+```bash
+kubectl -n prometheus port-forward kube-prometheus-stack-1602180058-grafana-59cd48d794-4459m 3000
+```
+
+the default credentials are:
+
+> admin / prom-operator
+
+## Loki
+
+In graphala we can monitor our logs. We can achieve that by adding 
+the **log aggregation system** `Loki`.
+
+1. (add repo) we add the graphana helm-charts:
+    ```bash
+    helm repo add grafana https://grafana.github.io/helm-charts
+
+    helm repo update
+    ```
+
+2. (install) we can now install the `loki-stack`, preferrably in a different namespace to be distinct `loki-stack`:
+
+    ```bash
+    kubectl create namespace loki-stack
+
+    # image 2.9.3 is old but lightweight, newer one is very heavy for a mid laptop
+    helm upgrade --install loki --namespace=loki-stack grafana/loki-stack --set loki.image.tag=2.9.3
+    ```
+
+we can now see the resources running with:
+
+```bash
+kubectl get all -n loki-stack
+
+#---
+
+NAME                    TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+  service/loki            ClusterIP   10.43.170.68   <none>        3100/TCP   18m
+  service/loki-headless   ClusterIP   None           <none>        3100/TCP   18m
+```
+
+we can see that it's running on 3100.
+ 
+So in `graphal`, if we navigate to **Connections** > **choose Data Sources**  and then Add new data source,
+we can add `loki` in **http://loki.loki-stack:3100**.
+
+To view the logs, we choose the desired container or whatever we want and press **live** and **initiate query**.
+Any logs will be added there.
+
+This is done because this version of `loki-stack` comes with `Promtail`, an agent which ships the contents of local logs to a private Grafana Loki instance or Grafana Cloud.
+
+Promptail will be deprecated soon and need to be replaced by `Grafana Alloy` in combination with `grafana/loki`.
+
+
 
 
 
