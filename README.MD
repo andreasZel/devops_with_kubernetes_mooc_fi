@@ -1353,6 +1353,47 @@ This is done because this version of `loki-stack` comes with `Promtail`, an agen
 
 Promptail will be deprecated soon and need to be replaced by `Grafana Alloy` in combination with `grafana/loki`.
 
+# Cloud Solutions
+
+We can manage our own kubernetes clusters in case we have the necessary hardware for it or we are a private organisation such as
+a univercity. The problem comes with managing it, an improper setup can add up to the bill, so in most case `Serverless` Solution is 
+the best approach.
+
+*Serverless, meaning, not actually worring about the actual hardware, just use servers of another provider*. There are different high-tier environment for serverless workloads, such as **Google Cloud Run** or **AWS Fargate**, but we'll use `Google Kubernetes Engine`.
+
+A cheap option would be **5 nodes in 1 zonal cluster using 1 vCPU each**. This would come around 200$ a month, with more cost added with load balancers.
+
+To use Google Kubernetes Engine:
+
+1. we'll have to [create an account](https://cloud.google.com/kubernetes-engine?hl=el).
+2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install).
+3. On the [resources page](https://console.cloud.google.com/cloud-resource-manager) we can create a new project.
+4. We can now log in from CLI and use the project we created:
+    ```bash
+    # login
+    gcloud auth login
+    
+    #...
+
+    # set project
+    gcloud config set project [project-name]
+    ```
+5. enable the KCE API from the page or by typing:
+    ```bash
+    y
+    gcloud services enable container.googleapis.com
+    ```
+6. Install the `gke-gcloud-auth-plugin` from [here](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin)
+7. We can now create a cluster with `gcloud container clusters create`. The command accepts a [zone](https://cloud.google.com/about/locations/) and a [GKE version](https://cloud.google.com/kubernetes-engine/docs/release-schedule), for example :
+   ```bash
+    gcloud container clusters create dwk-cluster --zone=europe-west1-b --cluster-version=latest --disk-size=32 --num-nodes=3 --machine-type=e2-medium
+   ```
+
+   we created a cluster with name: dwk-cluster, in zone europe-west1-b, disk size 32 gb, 3 nodes and a machine type of e2-medium 2 vCPUs and 2 GB RAM per node.
+
+After that we can observe our cluster using `kubectl cluster-info`.
+
+
 
 
 
