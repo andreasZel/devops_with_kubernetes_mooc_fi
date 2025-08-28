@@ -360,6 +360,7 @@ To achieve an external connection in kubernetes we can use 3 ways:
 1. A `Service` resource, more precisely a `NodePort`
 2. An `Ingress` resource
 3. A `Gateway API`
+4. A `Load Balancer Service`
 
 ### Initial Steps
 
@@ -534,6 +535,28 @@ finally, we can use the `svc created`, so if we defined a ClusterIP service for 
 ```bash
 kubectl exec -it my-busybox -- wget -qO http://todo-backend-svc:2345
 ```
+
+### 4. Load Balancer Service
+
+We can also use a load balancer as follows: 
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: seedimage-svc
+spec:
+  type: LoadBalancer # This should be the only unfamiliar part
+  selector:
+    app: seedimage
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3000
+```
+
+It's the same as ingress, it will add to cost in the end but we get 
+reliability.
 
 # Storage
 
