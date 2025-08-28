@@ -1416,6 +1416,14 @@ To use Google Kubernetes Engine:
 
 After that we can observe our cluster using `kubectl cluster-info`.
 
+## Applying resources from github
+
+We can use `https://raw.githubusercontent.com/` to apply our files directly from github, we can do it as bellow:
+
+```bash
+# after repo we have to specify commit key
+kubectl apply -f https://raw.githubusercontent.com/andreasZel/devops_with_kubernetes_1_1_Log_Output/fd9e072b39d69535cb892c1623879d334f3ecee6/porsgresServices/StatefullSetPorsgres.yml
+```
 
 
 
