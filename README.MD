@@ -1435,6 +1435,13 @@ To avoid using resources we can delete the cluster using:
 gcloud container clusters delete dwk-cluster --zone=europe-west1-b
 ```
 
+## Ingress in GKE 
+
+In GKE to use ingress we have to use a `NodePort` service as well. 
+Even though it is NodePort, GKE does not expose it outside the cluster.
+
+
+
 
 
 
