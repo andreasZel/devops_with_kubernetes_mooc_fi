@@ -476,6 +476,7 @@ kubectl apply -f manifest
 ### 3. Gateway API
 
 `Gateway API` is an evolving **set of resources and configurations** designed to **manage network traffic within** Kubernetes **clusters**.
+It is used in combination with a cloud provider, it is desribed better in the [Gateway API in GKE](#gateway-api-in-gke) section.
 
 ## DNS Within Kubernetes
 
@@ -1452,6 +1453,91 @@ To use a Load balancer in GKE we have to define 1 clusterIP resource and 1 load 
 
 In GKE to use ingress we have to use a `NodePort` service as well. 
 Even though it is NodePort, GKE does not expose it outside the cluster.
+
+## Gateway API in GKE
+
+The `Gateway API` is a **set of resources and standards** that allow us to define **how external traffic should be routed to services within our Kubernetes cluster**.
+
+At the top is **GatewayClass**, which is a resource within the GatewayAPI that defines a type of Gateway.
+
+It specifies the underlying infrastructure or controller that will be used to implement the Gateway. 
+
+The **GatewayClass** resources are **defined by infrastructure providers**. The list of options provided by Google Kubernetes Engine can be seen [here](https://cloud.google.com/kubernetes-engine/docs/concepts/gateway-api).
+
+![gateway api image](./assets/GATEWAY-API.png)
+
+### How to use a Gateway API in GKE
+
+First we need to enable it in the cluster:
+
+```bash
+gcloud container clusters update dwk-cluster --location=europe-west1-b --gateway-api=standard
+```
+
+Then we need 3 .yaml files:
+
+1. A `Gateway Resource`, `gateway.yaml`, which defines where and how the load balancers listen for traffic to our cluster:
+   ```yaml
+    apiVersion: gateway.networking.k8s.io/v1beta1
+    kind: Gateway
+    metadata:
+      name: my-gateway
+    spec:
+      gatewayClassName: gke-l7-global-external-managed
+      listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        allowedRoutes:
+          kinds:
+          - kind: HTTPRoute
+   ```
+   we can see that it's a type of Gateway, it picks a GatewayClass following the [Google recommendations](https://cloud.google.com/kubernetes-engine/docs/concepts/gateway-api#route) and says that our cluster accepts HTTP traffic to port 80
+2. A `HTTPRoute resource`, `route.yaml` describes the routing rules
+    ```yml
+    apiVersion: gateway.networking.k8s.io/v1beta1
+    kind: HTTPRoute
+    metadata:
+      name: my-route
+    spec:
+      parentRefs:
+      - name: my-gateway
+      rules:
+      - matches:
+        - path:
+            type: PathPrefix
+            value: /
+        backendRefs:
+        - name: seedimage-svc
+          port: 80
+    ```
+    more or less the same as an ingress.
+3. A `ClusterIp Resource` to open the port:
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: seedimage-svc
+    spec:
+      type: ClusterIP
+      selector:
+        app: seedimage
+      ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 3000
+    ```
+
+Then we can see where we can access it using `describe`:
+
+```bash
+kubectl get gateway my-gateway
+
+# Output:
+
+# NAME         CLASS         ADDRESS          PROGRAMMED   AGE
+# my-gateway   gke-l7-gxlb   35.227.224.141   True         106m
+```
 
 
 
