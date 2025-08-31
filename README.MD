@@ -1427,6 +1427,13 @@ kubectl apply -f https://raw.githubusercontent.com/andreasZel/devops_with_kubern
 
 > !! Sometimes there are errors with postgres statefulset, we can use `subPath: postgres` to avoid it, and don't add a storage class. After that we remove the storage class and the statefulset and reapply to fix it
 
+## Troubleshooting
+
+We can use different methods to troubleshoot. One is the `get <resource-type> <resource-name> -n <namespace>` and another is the 
+`describe <resource-type> <resource-name> -n <namespace>` if the resource restarts or is unavailable.
+
+Using tools as `freelens` is also vey helpful.
+
 ## Deleting the cluster 
 
 To avoid using resources we can delete the cluster using:
@@ -1436,6 +1443,12 @@ gcloud container clusters delete dwk-cluster --zone=europe-west1-b
 ```
 
 ## Ingress in GKE 
+
+Services are quite simple. They allow us to define a layer 4 (L4) load balancer on Google Cloud Services.
+
+Layer 4 here means the layer in OSI model. In other words, TCP/UDP traffic. For advanced traffic rules, we need to use a layer 7 (L7) load balancers which can be created either by an Ingress, or by Gateway.
+
+To use a Load balancer in GKE we have to define 1 clusterIP resource and 1 load balancer resource for each port wanted, or define them in the dame .yml file, for ingress a different approach is required.
 
 In GKE to use ingress we have to use a `NodePort` service as well. 
 Even though it is NodePort, GKE does not expose it outside the cluster.
