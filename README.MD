@@ -1539,6 +1539,46 @@ kubectl get gateway my-gateway
 # my-gateway   gke-l7-gxlb   35.227.224.141   True         106m
 ```
 
+## Deployment Pipeline
+
+There are several tools that help with kubernetes deployment like [Kustomize](https://github.com/kubernetes-sigs/kustomize) and [Helmsman](https://github.com/mkubaczyk/helmsman). These allow as to apply multiple yml files with one command. This can be used in cobination with `github actions` to deploy our solutions.
+
+### Kustomise 
+
+`Kustomise` is built in to kubernetes! To use it we have to create a `.yml` file where we define our resources:
+
+An example would be:
+
+```yml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - manifests/deployment.yaml
+  - manifests/service.yaml
+images:
+  - name: PROJECT/IMAGE_COLORCONTENT
+    newName: jakousa/colorcontent
+    newTag: v1.2.3
+```
+
+Then we apply with the `-k` flag:
+
+```bash
+kubectl apply -k .
+```
+
+we can also use the `kubectl kustomize .` to view our created yml file to the screen. In our example,
+we used *PROJECT/IMAGE_COLORCONTENT* as a var that points to **jakousa/colorcontent**.
+
+Now, in our service we can use *PROJECT/IMAGE_COLORCONTENT* as the image name and it will be **updated automatically** based on tag!
+
+So in our case is **v1.2.3**, if we don't specify, it will be the **latest one**.
+
+> A useful tool that can be used is
+> [Kubernetes Kustomize Cheat Sheet](https://itnext.io/kubernetes-kustomize-cheat-sheet-8e2d31b74d8f), providing additional documentation.
+
+
+
 
 
 
