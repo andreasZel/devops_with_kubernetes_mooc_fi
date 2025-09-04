@@ -1545,7 +1545,7 @@ There are several tools that help with kubernetes deployment like [Kustomize](ht
 
 ### Kustomise 
 
-`Kustomise` is built in to kubernetes! To use it we have to create a `.yml` file where we define our resources:
+`Kustomise` is built in to kubernetes! To use it we have to create a `kustomization.yml` file where we define our resources:
 
 An example would be:
 
