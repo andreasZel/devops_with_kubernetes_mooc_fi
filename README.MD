@@ -1577,8 +1577,137 @@ So in our case is **v1.2.3**, if we don't specify, it will be the **latest one**
 > A useful tool that can be used is
 > [Kubernetes Kustomize Cheat Sheet](https://itnext.io/kubernetes-kustomize-cheat-sheet-8e2d31b74d8f), providing additional documentation.
 
+## Github Actions
 
+We can define a github action to build our images each time we push a new change in our repo.
 
+We can use the [Google Artifacts Registry](https://console.cloud.google.com/artifacts) repo instead of `dockerhub`. 
+
+To do so, we need to add a `service account`. We can do it as:
+
+1. In GKE navigate to `IAM & ADMIN`/`Service Accounts`
+2. Add a new account with the following **roles**:
+  - **Kubernetes Engine Service Agent**: Gives Kubernetes Engine account access to manage cluster resources. Includes access to service accounts.
+  - **Storage Admin**: Grants full control of buckets and objects.
+  - **Artifact Registry Administrator**: Administrator access to create and manage repositories.
+  - **Artifact Registry Create-on-Push Repository Administrator**: Access to manage artifacts in repositories, as well as create new repositories on push.
+3. Generate a key:
+  - Either from the **UI**, by downloading the **JSON**
+  - or by typing:
+    ```bash
+    gcloud iam service-accounts keys create ./private-key.json
+    ```
+4. Create a **Google Artifact Registry** with a docker repo
+5. Create the **workflow**:
+    - create a dir **.github/workflows** and add a **main.yml** file
+    - add two `secrets`, one for the **project_id** and one for the **key**. The key needs to have the **entire JSON file content**.
+    
+    The workflow needs to 
+      1. checkout in the branch
+      2. authenticate to GKE with the key we got
+      3. setup the artifact registry
+      4. get creadentials for our cluster
+      5. build and push each image seperately, with a new tag
+      6. setup Kustomize with new variables
+    
+    The whole action can be described as follows:
+    ```yml
+    name: Release application
+
+    on:
+      push:
+        branches:
+          - main  
+
+    env:
+      PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+      GKE_CLUSTER: dwk-cluster
+      GKE_ZONE: europe-west1-b
+      REGISTRY: europe-west1-docker.pkg.dev
+      REPOSITORY: my-repository # Artifact registry for images
+      BRANCH: ${{ github.ref_name }}
+
+      # image names
+      IMAGE_SERVER: zelhs/project_server
+      IMAGE_TODO: zelhs/todoapp
+      IMAGE_RANDOM: zelhs/random-article
+
+    jobs:
+      build-publish-deploy:
+        name: Build, Publish and Deploy
+        runs-on: ubuntu-latest
+
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+
+          - uses: google-github-actions/auth@v2
+            with:
+              credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+          - name: 'Set up Cloud SDK'
+            uses: google-github-actions/setup-gcloud@v2
+
+          - run: gcloud --quiet auth configure-docker $REGISTRY
+
+          - name: 'Get GKE credentials'
+            uses: 'google-github-actions/get-gke-credentials@v2'
+            with:
+              cluster_name: '${{ env.GKE_CLUSTER }}'
+              project_id: '${{ env.PROJECT_ID }}'
+              location: '${{ env.GKE_ZONE }}'
+
+          # Form image tags
+          - name: 'Form image names'
+            run: |
+              echo "IMAGE_TAG_SERVER=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE_SERVER:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+              echo "IMAGE_TAG_TODO=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE_TODO:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+              echo "IMAGE_TAG_RANDOM=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE_RANDOM:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+          # Build & Push Server
+          - name: Build & Push project_server
+            run: |
+              docker build -t $IMAGE_TAG_SERVER .
+              docker push $IMAGE_TAG_SERVER
+
+          # Build & Push todoApp
+          - name: Build & Push todoApp
+            run: |
+              docker build -t $IMAGE_TAG_TODO ./todoApp
+              docker push $IMAGE_TAG_TODO
+
+          # Build & Push createRandomTodo
+          - name: Build & Push createRandomTodo
+            run: |
+              docker build -t $IMAGE_TAG_RANDOM ./createRandomTodo
+              docker push $IMAGE_TAG_RANDOM
+
+          # Deploy
+          - name: Set up Kustomize
+            uses: imranismail/setup-kustomize@v2.1.0
+
+          - name: Deploy
+            run: |-
+              kustomize edit set image PROJECT/IMAGE_SERVER=$IMAGE_TAG_SERVER
+              kustomize edit set image PROJECT/IMAGE_TODO=$IMAGE_TAG_TODO
+              kustomize edit set image PROJECT/IMAGE_RANDOM=$IMAGE_TAG_RANDOM
+              kustomize build . | kubectl apply -f -
+              kubectl rollout status deployment project_server
+              kubectl rollout status deployment todoapp
+              kubectl rollout status deployment random-article
+    ```
+    we can see that env vars were used in combination with the secrets. 
+
+    Image tags were also auto updated using:
+
+    ```yml
+    IMAGE_TAG_SERVER=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE_SERVER:$BRANCH-$GITHUB_SHA
+
+    # output would be something like: 
+    europe-west1-docker.pkg.dev/dwk-gke-12312/myregistry/zelhs/project_server:main-c00adaefda1f7169
+    ```
+
+      
 
 
 
