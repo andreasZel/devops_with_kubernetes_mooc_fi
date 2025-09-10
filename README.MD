@@ -1706,9 +1706,45 @@ To do so, we need to add a `service account`. We can do it as:
     # output would be something like: 
     europe-west1-docker.pkg.dev/dwk-gke-12312/myregistry/zelhs/project_server:main-c00adaefda1f7169
     ```
+## Good practices Branch - Namespace
 
-      
+It's a good practice to seperate each branch as it's own namespace. We can achieve this using actions such as:
 
+```yml
+kustomize edit set namespace ${GITHUB_REF#refs/heads/}
+```
+
+`GITHUB_REF` will give us something like **refs/heads/main**. By adding `#` remove the shortest prefix match. So 
+the path would look like **main**, if it would be **refs/heads/feat/main** it would give **feat/main** and so forth.
+
+We need to make sure the namespace exist first, so well try to create it first:
+
+```yml
+kubectl create namespace ${GITHUB_REF#refs/heads/} || true
+```
+
+and use it with:
+
+```yml 
+kubectl config set-context --current --namespace=${GITHUB_REF#refs/heads/}
+```
+
+it uses it in context for all the following instructions.
+
+All together it should look like:
+
+```yml
+  # ...
+- name: Deploy
+  run: |-
+    kubectl create namespace ${GITHUB_REF#refs/heads/} || true
+    kubectl config set-context --current --namespace=${GITHUB_REF#refs/heads/}
+    kustomize edit set namespace ${GITHUB_REF#refs/heads/}
+    kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
+    kustomize build . | kubectl apply -f -
+    kubectl rollout status deployment $SERVICE
+    kubectl get services -o wide
+```
 
 
 
