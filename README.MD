@@ -1746,6 +1746,11 @@ All together it should look like:
     kubectl get services -o wide
 ```
 
+### Domain Names
+
+The next step is to seperate to different environments using
+[domain names](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip) like we'd have "www.example.com" as the production and e.g. "featx.example.com" as the featx branch.
+
 
 
 
