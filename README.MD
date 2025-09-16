@@ -1824,7 +1824,39 @@ behavior:
     stabilizationWindowSeconds: 30
 ```
 
+## Horizontal Scaling: Scaling Nodes (cluster autoscaling)
 
+To enable node scaling, we have to update our cluster using `--enable-autoscaling` flag, in 
+combination with `--min-nodes` and `--max-nodes` flags for minimum and maximum ammount of nodes.
+
+An example with min 1 and max 5 would be:
+
+```bash
+gcloud container clusters update dwk-cluster --zone=europe-north1-b --enable-autoscaling --min-nodes=1 --max-nodes=5
+```
+
+Cluster autoscaling may disrupt pods by moving them around as the number of nodes increases or decreases. So we can use
+`PodDisruptionBudget` resource to tell kubernetes minAvailable or/and maxAvailable number of nodes.
+
+with this setup:
+
+```yml
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: example-app-pdb
+spec:
+  maxUnavailable: 50%
+  selector:
+    matchLabels:
+      app: example-app
+```
+
+we tell kubernetes that no more than half of the pods can be unavailable.
+
+## Vertical Scaling (VerticalPodAutoscaler)
+
+We can also scale pods vertically with `VerticalPodAutoscaler`, utilizing more cpu and memory when needed.
 
 
 
