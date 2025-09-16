@@ -1751,6 +1751,69 @@ All together it should look like:
 The next step is to seperate to different environments using
 [domain names](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip) like we'd have "www.example.com" as the production and e.g. "featx.example.com" as the featx branch.
 
+# Scaling 
+
+There are two primary types of scaling: `horizontal scaling` and `vertical scaling`.
+
+1. `Vertical scaling` involves increasing the resources available to **a single pod or node**, such as adding **more CPU or memory**. This approach enhances the capacity of individual units.
+
+2. `Horizontal scaling`, which is more commonly discussed, involves increasing the **number of pods or nodes**. This method distributes the load across multiple units, enhancing the system's ability to handle higher traffic and providing redundancy.
+
+## Horizontal Scaling: Scaling Pods (HorizontalPodAutoscaler)
+
+We might want to increase the number of pods according to network traffic, like when we have more request in an application than the number of requests that can be processed.
+
+we can enforce some **limits** in our deployments with `limits:`. We can setup limit for `CPU` and `memory`, this is enforced by limiting the resources by `throttling` for CPU and memory limits are enforced by the kernel with **out of memory (OOM) kills**.
+
+an example would be:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpushredder-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpushredder
+  template:
+    metadata:
+      labels:
+        app: cpushredder
+    spec:
+      containers:
+        - name: cpushredder
+          image: jakousa/dwk-app7:e11a700350aede132b62d3b5fd63c05d6b976394
+          resources:
+          # limits
+            limits:
+              cpu: "150m"
+              memory: "100Mi"
+```
+
+The suffix of the CPU limit "m" stands for "thousandth of a core". Thus 150m equals 15% of a single CPU core (150/1000=0,15).
+
+we can scale up using a new resource, a `HorizontalPodAutoscaler`. 
+
+We define **minimum replicas**, **maximum replica count** and the **target CPU Utilization** as well as the **target deployment**. 
+
+If the CPU utilization exceeds the target then an additional replica is created until the max number of replicas.
+
+```yml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cpushredder-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cpushredder-dep
+  minReplicas: 1
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 50
+```
 
 
 
