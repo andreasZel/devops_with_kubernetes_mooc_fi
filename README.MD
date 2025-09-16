@@ -1142,7 +1142,7 @@ We can create a `bash sript` that takes an **env URL variable**, the db url and 
 using pgdump:
 
 ```bash
-<strong>#!/usr/bin/env bash</strong>
+#!/usr/bin/env bash
 set -e
 
 if [ $URL ]
