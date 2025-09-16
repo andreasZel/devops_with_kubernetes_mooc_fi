@@ -1815,6 +1815,15 @@ spec:
   targetCPUUtilizationPercentage: 50
 ```
 
+By default it will take 300 seconds to scale down. We can set this up by altering HorizontalPodAutoscaler:
+
+```yml
+#...
+behavior:
+  scaleDown:
+    stabilizationWindowSeconds: 30
+```
+
 
 
 
