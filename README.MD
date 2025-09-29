@@ -1858,6 +1858,56 @@ we tell kubernetes that no more than half of the pods can be unavailable.
 
 We can also scale pods vertically with `VerticalPodAutoscaler`, utilizing more cpu and memory when needed.
 
+## Safer Deployment
+
+We ideally want the application to work during and after an update. So
+instead of updating avery pod at the same time, we update once at a time.
+
+There are two main approaches:
+
+1. `Rolling update`
+2. `Canary release`
+
+### 1. Rolling update
+
+Kubernetes automatically initiates a rolling update when we change an image,
+, every pod is updates sequentially. If we decide to push an image that does not work, the update will automatically stop.
+
+That does not take into accoint if the actual application works, for that we can use `ReadinessProbe` resource.
+
+#### ReadinessProbe
+
+We can use `ReadinessProbe`to use an endpoint thats checks for the application's helth. We actually have to create the endpoint ourselfs, returning 200 for healthy and 500 not healthy.
+
+A typical ReadinessProbe.yml would look like:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flaky-update-dep
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: flaky-update
+  template:
+    metadata:
+      labels:
+        app: flaky-update
+    spec:
+      containers:
+        - name: flaky-update
+          image: mluukkai/dwk-app8:v1
+          readinessProbe:
+            initialDelaySeconds: 10 # Initial delay until the readiness is tested
+            periodSeconds: 5 # How often to test
+            httpGet:
+               path: /healthz
+               port: 3541
+```
+
+if it does return 500 the update won't continue.
 
 
 
