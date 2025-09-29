@@ -110,6 +110,12 @@ We also see that port **6443** is opened to **"k3d-k3s-default-serverlb"**, a us
 
 The port on our machine that is mapped to 6443 is randomly choosen. We could opted out of the load balancer with `k3d cluster create -a 2 --no-lb`.
 
+example:
+
+```bash
+k3d cluster create --port 8082:30080@agent:0 -p 8081:80@loadbalancer --agents 2
+```
+
 ### kubeconfig
 
 A `kubeconfig` file will be created, this is used to organize information about clusters, users, namespaces, and authentication mechanisms.
