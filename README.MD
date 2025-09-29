@@ -1879,7 +1879,7 @@ That does not take into accoint if the actual application works, for that we can
 
 We can use `ReadinessProbe`to use an endpoint thats checks for the application's helth. We actually have to create the endpoint ourselfs, returning 200 for healthy and 500 not healthy.
 
-A typical ReadinessProbe.yml would look like:
+A typical readinessProbe inside a deployment.yml would look like:
 
 ```yaml
 apiVersion: apps/v1
