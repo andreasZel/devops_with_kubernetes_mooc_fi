@@ -1915,5 +1915,72 @@ spec:
 
 if it does return 500 the update won't continue.
 
+While `ReadinessProbe` is usefull to check if application is healthy, nothing 
+can be done if it is indeed unhealthy. We can either:
+
+1. Use `rollout undo` command to roll back into the previous version, or specify the verion
+2. Use a `LivenessProbe`, a resource that restarts the container if it is unhealthy
+
+#### Rollout undo command
+
+We can get back to the previous version with:
+
+```bash 
+kubectl rollout undo deployment
+```
+
+or get to a specific version whith `--to-revision`. This will return to the version wanted, if we specify **=1** it means the 1st version, for example:
+
+```bash
+kubectl describe deployment flaky-update-dep | grep Image
+#    Image:        mluukkai/dwk-app8:v2
+
+kubectl rollout undo deployment flaky-update-dep --to-revision=1
+#  deployment.apps/flaky-update-dep rolled back
+
+kubectl describe deployment flaky-update-dep | grep Image
+#    Image:        mluukkai/dwk-app8:v1
+```
+
+#### LivenessProbes
+
+The way to configure a **liveness probe** is the same as the 
+Readyness probe, with the exeption that it will restart the 
+container if it fails. 
+
+An example would be:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flaky-update-dep
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: flaky-update
+  template:
+    metadata:
+      labels:
+        app: flaky-update
+    spec:
+      containers:
+        - name: flaky-update
+          image: mluukkai/dwk-app8:v1
+          readinessProbe:
+            initialDelaySeconds: 10 # Initial delay until the readiness is tested
+            periodSeconds: 5 # How often to test
+            httpGet:
+               path: /healthz
+               port: 3541
+          livenessProbe:
+            initialDelaySeconds: 20 # Initial delay until the liveness is tested
+            periodSeconds: 5 # How often to test
+            httpGet:
+               path: /healthz
+               port: 3541
+```
+
 
 
