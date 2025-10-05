@@ -1982,5 +1982,4 @@ spec:
                port: 3541
 ```
 
-
-
+liveness probe can somethimes cause slow startup time, we can use a `StartupProbe` to prevent it from firing prematurely
