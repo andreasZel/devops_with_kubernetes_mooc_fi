@@ -1983,3 +1983,111 @@ spec:
 ```
 
 liveness probe can somethimes cause slow startup time, we can use a `StartupProbe` to prevent it from firing prematurely
+
+### 2. Canary Release
+
+With the term `canary release`, we introduce **a subset of the users to a new version of the application**. When the **confidence** in the new release grows, the number of users in the new version can be increased until the old version is **no longer used**.
+
+We first need a way to `gradually update`:
+
+Kubernetes does not come out of the box with tools to implement a canary release, but we can use [Argo Rollouts](https://argoproj.github.io/argo-rollouts/).
+
+With this, we need to define 2 things:
+
+1. a `Rollout` resource
+2. an `AnalysisTemplate` resource
+
+It is good practice to keep it in a seperate namespace, we can install it using:
+
+```bash
+kubectl create namespace argo-rollouts
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+```
+
+then we can use a **new Resource in our deployment** called `Rollout`. We replace our existin deployment with this one and specify a strategy:
+
+the `rollout.yaml` would look like this:
+
+```yml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: flaky-update-dep
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: flaky-update
+  strategy:
+    canary:
+      steps:
+      - setWeight: 25 # first move 25% of pods to the new verion
+      - pause:
+          duration: 30s
+      - setWeight: 50 # then move the other 50% after 30s
+      - pause:
+          duration: 30s # wait another 30s until every pod is updated
+  template:
+    metadata:
+      labels:
+        app: flaky-update
+    spec:
+      containers:
+        - name: flaky-update
+          image: mluukkai/dwk-app8:v1
+          readinessProbe:
+            initialDelaySeconds: 10 # Initial delay until the readiness is tested
+            periodSeconds: 5 # How often to test
+            httpGet:
+               path: /healthz
+               port: 3541
+          livenessProbe:
+            initialDelaySeconds: 20 # Initial delay until the liveness is tested
+            periodSeconds: 5 # How often to test
+            httpGet:
+               path: /healthz
+               port: 3541
+```
+
+As we can see we first move 25% of pods to new version, wait and update another 50% and wait again.
+
+With `kubectl plugin` from `Argo`, we can use `promote` command to enable us to pause the rollout **indefinitely** and then **use the promote to move forward**. 
+
+`maxUnavailable` can also be used to setup how many pods max can be unavailable also.
+
+In this step we also need a way to check our `app's health` after the update `to revert it if needed`.
+
+We can either use `Promitheus`, a `basic endpoint` or whatever gives us some input as to what happens in the cluster during our update.
+
+Using the `AnalysisTemplate` we can query promitheus to check if the number of overall restarts over the last 2 minutes is higher than two. If so, analysis fails.
+
+```yml
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: restart-rate
+spec:
+  metrics:
+  - name: restart-rate
+    initialDelay: 2m
+    successCondition: result < 2
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-1602-prometheus.prometheus.svc.cluster.local:9090 # DNS name for my Prometheus, using kubectl describe svc ...
+        query: |
+          scalar(
+            sum(kube_pod_container_status_restarts_total{namespace="default", container="flaky-update"}) -
+            sum(kube_pod_container_status_restarts_total{namespace="default", container="flaky-update"} offset 2m)
+          )
+```
+
+Now we can safely deploy any version of our app, because it will eventually revert back to the previous if it fails. 
+
+We can see the rollouts using:
+
+```yml
+kubectl argo rollouts get rollout flaky-update-dep --watch
+```
+
+
+
