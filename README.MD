@@ -2090,4 +2090,8 @@ kubectl argo rollouts get rollout flaky-update-dep --watch
 ```
 
 
+### Other Release Methods
 
+Kubernetes by default takes down the previous pods and replaces them with the new ones. This strategy is called `Recreate`.
+
+**Argo Rollouts** also supports `BlueGreen` strategy, that runs both versions side by side and at some point given the traffic will be switched to the new version.
