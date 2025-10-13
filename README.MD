@@ -2095,3 +2095,165 @@ kubectl argo rollouts get rollout flaky-update-dep --watch
 Kubernetes by default takes down the previous pods and replaces them with the new ones. This strategy is called `Recreate`.
 
 **Argo Rollouts** also supports `BlueGreen` strategy, that runs both versions side by side and at some point given the traffic will be switched to the new version.
+
+## Messaging Queues
+
+**Message queues** are a method for communication between services. They have a wide range of use cases and are helpful when we want to scale applications. 
+
+Services need to **know eachother addresses** and **recieve/post messages** in
+messaging queue.
+
+### NATS Publisher - Subsriber system
+
+A messaging system that can be used is [NATS](https://docs.nats.io/). It's a system that handles the send and recieve functionality of `messages` in a `subject`.
+
+> Basically a service can **publish** to a `subject`
+
+> Another service can **subscribe** to that **subject** and `recieve the message`
+
+In `Core NATS` if a message is sent but somehow is missed from the subscribers, the message is lost. But there are configuration to save messages.
+
+### Queue Mode
+
+In the default mode, if we scale up our pods, we might get duplication of messages. That's where the `queue` mode comes in. 
+
+Using it, each published message is given just to one subscriber.
+
+### Installing NATS to cluster
+
+We can use `Helm` to install NATS to our cluster with
+
+```bash
+helm install my-nats nats/nats --set config.jetstream.enabled=true --set config.jetstream.fileStore.pvc.size=1Gi -n project
+```
+
+this will:
+1. create a resource called **my-nats** in project **namespace**
+2. enable **jetstream**, so we can use `queue mode` with 1Gi space 
+
+We can update and add other parameters by using `helm upgrade` as before.
+For example we can enable metrics with:
+
+```bash 
+helm upgrade --set metrics.enabled=true,auth.enabled=false my-nats nats/nats
+```
+
+By default `NATS URL` is `nats://my-nats:4222`. We can use it to access it from our pods
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: project
+  name: broadcaster-dep
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: broadcaster
+  template:
+    metadata:
+      labels:
+        app: broadcaster
+    spec:
+      containers:
+        - name: broadcaster
+          image: PROJECT/IMAGE_BROADCASTER
+          env:
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: broadcaster-secret
+                  key: DISCORD_WEBHOOK_URL
+            - name: NATS_URL
+              value: nats://my-nats:4222
+```
+
+and use it in our app to send/recieve messages. 
+
+NATS has a **web service** that provides many kinds of data for monitoring. We can access the service from the browser with:
+
+```bash
+ kubectl port-forward my-nats-0 8222:8222
+```
+
+in http://localhost:8222.
+
+Then we can use [Prometheus exporter](https://github.com/nats-io/prometheus-nats-exporter) to show metrics to **port 7777** from NATS to promitheus so we can query them.
+
+for `bitnamicharts` NATS we can use the `metrics.enabled` parameter and forward the port to use it in our browser:
+
+```bash
+kubectl port-forward --namespace default svc/my-nats-metrics 7777:7777
+```
+
+Connecting Prometheus to the exporter requires a new resource `ServiceMonitor`, which is another Custom Resource Definition (CDR).
+
+This also requires two additional parameters, `metrics.serviceMonitor.namespace` and `metrics.serviceMonitor.enabled`. If we want, we can group the parameters in a yml file for easier use:
+
+```yml
+# myvalues.yml 
+auth:
+  enabled: false
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: prometheus
+```
+
+then apply the values in the command:
+
+```bash
+helm upgrade -f myvalues.yaml my-nats oci://registry-1.docker.io/bitnamicharts/nats
+```
+
+we can see them with:
+
+```bash
+kubectl get servicemonitors.monitoring.coreos.com -n prometheus
+```
+
+We them need to add a label to the `ServiceMonitor` so that Promitheus will know to listen to NATS:
+
+```bash
+kubectl -n prometheus get prometheus
+#  NAME                                    VERSION   REPLICAS   AGE
+#  kube-prometheus-stack-1744-prometheus   v2.51.2   1          39h
+
+kubectl describe prometheus -n prometheus #kube-prometheus-stack-1744-prometheus
+#...
+#  Service Monitor Selector:
+#    Match Labels:
+#      Release:  kube-prometheus-stack-1744138938
+#...
+```
+
+So the label needs to be `release: kube-prometheus-stack-1744138938` unless we'd like to define **a new Prometheus resource**. 
+
+Label is set as the value of** metrics.service.labels**:
+
+```bash
+kubectl label servicemonitors.monitoring.coreos.com -n prometheus my-nats-metrics release=kube-prometheus-stack-1744138938
+```
+
+If we port forward promitheus we can see the result from `localhost:9090`:
+
+```bash
+kubectl -n prometheus port-forward prometheus-kube-prometheus-stack-1744-prometheus-0 9090
+```
+
+or the API:
+
+```bash
+curl http://localhost:9090/api/v1/query\?query\=gnatsd_connz_in_msgs
+```
+
+We can the visualize with `Graphana`, importing [this](https://raw.githubusercontent.com/nats-io/prometheus-nats-exporter/5084a32850823b59069f21f3a7dde7e488fef1c6/walkthrough/grafana-nats-dash.json) dashboard.
+
+from:
+
+```bash
+kubectl -n prometheus port-forward kube-prometheus-stack-1602180058-grafana-59cd48d794-4459m 3000
+```
