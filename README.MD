@@ -2257,3 +2257,130 @@ from:
 ```bash
 kubectl -n prometheus port-forward kube-prometheus-stack-1602180058-grafana-59cd48d794-4459m 3000
 ```
+
+### GitOps
+
+Until now we are using the **push release method**, where:
+
+1. Developer pushes modified code to a repository, such as GitHub.
+2. This triggers a CI/CD service, like GitHub Actions, to start running.
+3. The CI/CD service runs tests, builds an image, pushes the image to a registry, and deploys the new image, for example, to Kubernetes.
+
+There are some challenges with the push approach. For example, if we have a Kubernetes cluster that is unavailable for external connections i.e. the cluster on your local machine or any cluster we don't want to give outsiders access to. In those cases having CI/CD push the update to the cluster is not possible.
+
+`GitOps` is all about reversal, meaning we can have **the cluster, running anywhere**, *pull the new image* and deploy it automatically.
+The new image will still be tested and built by the CI/CD. We simply relieve the CI/CD of the burden of deployment and move it to another system that is doing the pulling.
+
+It promotes good practices for the operations side of things. This is achieved by maintaining the state of the cluster in a Git repository, thereby handling not only application deployments but also all changes to the cluster.
+
+> We also used a similar approach in Docker with `watchtower` which enabled us to change the last pushes of a deployment pipeline to pulls when running services with docker-compose.
+
+The current state of the art tool for Kubernetes GitOps is `ArgoCd`.
+
+We can add it to the cluster with:
+
+```bash
+kubectl create namespace argocd
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+we also need to expose it to access the UI:
+
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+we can find the password for the username `admin` by:
+
+```bash
+kubectl get -n argocd secrets argocd-initial-admin-secret -o yaml
+```
+
+and `decode` the base64 encoded password we get.
+
+we then create a new project and **add the git repo**, choose `manual sync policy`. The destination cluster should be 
+alresdy configured so we add the one suggested.
+
+After we see that our app is running, we can create our `github workflow`, this can just update the images ny pushing them and
+use `kustomize edit` to set them in our `kustomization.yml`.
+
+A workoflow would look like so:
+
+```yml
+name: Build and publish application
+
+on:
+  push:
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-west1-b
+  REGISTRY: europe-west1-docker.pkg.dev
+  BRANCH: ${{ github.ref_name }}
+  REPOSITORY: my-repository
+
+  #image names
+  RANDOM_STRING: zelhs/ping-pong-application
+  PING_PONG: zelhs/randomstring
+
+jobs:
+  build-publish:
+    name: Build, Push, Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud --quiet auth configure-docker $REGISTRY
+
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v2'
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      # Form image tags
+      - name: 'Form image names'
+        run: |
+          echo "IMAGE_TAG_RANDOM_STRING=$REGISTRY/$PROJECT_ID/$REPOSITORY/$RANDOM_STRING:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+          echo "IMAGE_TAG_PING_PONG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$PING_PONG:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build and publish random string
+        run: |-
+          docker build -t $IMAGE_TAG_RANDOM_STRING ./PongOutput
+          docker push $IMAGE_TAG_RANDOM_STRING
+      
+      - name: Build and publish ping pong
+        run: |-
+          docker build -t $IMAGE_TAG_PING_PONG .
+          docker push $IMAGE_TAG_PING_PONG
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Use right image for random string
+        run: kustomize edit set image EXCERSISES/RANDOM_STRING=$IMAGE_TAG_RANDOM_STRING
+     
+      - name: Use right image for ping pong
+        run: kustomize edit set image EXCERSISES/PING_PONG=$IMAGE_TAG_PING_PONG
+
+      - name: commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'kustomization.yml'
+          message: New version released ${{ github.sha }}
+```
+
+in this one we upload images to artifact registry, update the kustomization and commit the changes to github.
+This can be altered to be dockerhub.
