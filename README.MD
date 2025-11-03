@@ -2384,3 +2384,115 @@ jobs:
 
 in this one we upload images to artifact registry, update the kustomization and commit the changes to github.
 This can be altered to be dockerhub.
+
+#### Multiple Environments
+
+When Kustomize is used, the recommended way is to define a `common base` for all the environments and then environment `specific overlays` where the differing parts are defined.
+
+1. We define a `base` folder containing essential .yml files and kustomize.
+
+2. We define `overlays`, basically other .yml files that `patch` the existing ones and kustomize.
+
+A basic structure would be as follows:
+
+```yml
+.
+├── base
+│   ├── deployment.yaml
+│   └── kustomization.yaml
+└── overlays
+    ├── prod
+    │   ├── deployment.yaml
+    │   └── kustomization.yaml
+    └── staging
+        └── kustomization.yaml
+```
+
+The `base/deployment.yaml` is:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: PROJECT/IMAGE
+```
+
+and `kustomization`:
+
+```yml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- deployment.yaml
+```
+
+then in `overlays/prod/deployment.yaml` we might change the replica number to 3:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dep
+spec:
+  replicas: 3
+```
+
+and `patch` in the kustomize `overlays/prod/kustomization.yaml`:
+
+```yml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ./../../base
+patches:
+  - path: deployment.yaml
+
+namePrefix: prod-
+
+images:
+  - name: PROJECT/IMAGE
+    newName: nginx:1.25-bookworm
+```
+
+#### Defining ArgoCd with a Resource
+
+We can use `Application Custom resource definition` instead of ArgoCd UI. It can be defined
+as follows:
+
+```yml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mluukkai/gitopstest
+    path: overlays/prod
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: <strong>true</strong>
+      selfHeal: <strong>true</strong>
+```
+
+
