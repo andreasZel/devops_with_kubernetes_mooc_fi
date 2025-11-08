@@ -2513,5 +2513,4 @@ With GitOps we achieve the following:
 - Portability
   - Want to change to a new provider? Spin up a cluster and point it to the same repository - your cluster is now there.
 
-According to ArgoCD the `best method` is to keep the environments in `a seperate repo`, but we can also add different `Application` resources
-in the same project and overlay in different namespaces.
+According to ArgoCD the `best method` is to keep source code and configurations on `a seperate repo`.
