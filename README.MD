@@ -2469,6 +2469,8 @@ images:
     newName: nginx:1.25-bookworm
 ```
 
+here we patched a resource, but this also applies to images.
+
 #### Defining ArgoCd with a Resource
 
 We can use `Application Custom resource definition` instead of ArgoCd UI. It can be defined
@@ -2495,4 +2497,21 @@ spec:
       selfHeal: <strong>true</strong>
 ```
 
+this is the declerative approach using a yml file. We could also work using the
+[cli tool](https://argo-cd.readthedocs.io/en/stable/getting_started/#2-download-argo-cd-cli).
 
+With GitOps we achieve the following:
+
+- Better security
+  - Nobody needs access to the cluster, not even CI/CD services. No need to share access to the cluster with collaborators; they will commit changes like everyone else.
+- Better transparency
+  - Everything is declared in the GitHub repository. When a new person joins the team, he/she can check the repository; no need to pass ancient knowledge or hidden techniques as there are none.
+- Better traceability
+  - All changes to the cluster are version controlled. You will know exactly what was the state of the cluster and how it was changed and by whom.
+- Risk reduction
+  - If something breaks simply revert the cluster to a working commit. git revert and the whole cluster is in a previous state.
+- Portability
+  - Want to change to a new provider? Spin up a cluster and point it to the same repository - your cluster is now there.
+
+According to ArgoCD the `best method` is to keep the environments in `a seperate repo`, but we can also add different `Application` resources
+in the same project and overlay in different namespaces.
