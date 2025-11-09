@@ -4,3 +4,6 @@
 [submodule "project_server"]
 	path = project_server
 	url = https://github.com/andreasZel/devops_with_kubernetes_project_server.git
+[submodule "devops_with_kubernetes_project_server_configuration"]
+	path = devops_with_kubernetes_project_server_configuration
+	url = https://github.com/andreasZel/devops_with_kubernetes_project_server_configuration
