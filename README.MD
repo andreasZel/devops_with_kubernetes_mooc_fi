@@ -29,6 +29,18 @@
 [Exercise 2.9](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/2.9) 
 [Exercise 2.10](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/2.10) 
 
+## Chapter 4
+
+[Exercise 3.1](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.1) 
+[Exercise 3.2](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.2) 
+[Exercise 3.3](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.3) 
+[Exercise 3.4](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.4) 
+[Exercise 3.5](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.5) 
+[Exercise 3.6](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.6) 
+[Exercise 3.7](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.7) 
+[Exercise 3.8](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.8) 
+[Exercise 3.9](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.9) 
+[Exercise 3.10](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/3.10) 
 
 # Personal Notes
 
