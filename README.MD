@@ -58,7 +58,12 @@
 [Exercise 4.10](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/4.10) 
 
 
-# Instructions for 5.2
+## Chapter 6
+[Exercise 5.1](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.1) 
+[Exercise 5.2](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.2) 
+
+
+# Instructions for Exercise 5.2
 
 I followed the [documentation](https://istio.io/latest/docs/setup/install/helm/) to install with HELM.
 If we also read [how to deploy example app](https://istio.io/latest/docs/examples/bookinfo/#before-you-begin), we need to
