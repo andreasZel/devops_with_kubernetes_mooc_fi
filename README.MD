@@ -57,6 +57,88 @@
 [Exercise 4.9](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/4.9) 
 [Exercise 4.10](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/4.10) 
 
+
+# Instructions for 5.2
+
+I followed the [documentation](https://istio.io/latest/docs/setup/install/helm/) to install with HELM.
+If we also read [how to deploy example app](https://istio.io/latest/docs/examples/bookinfo/#before-you-begin), we need to
+have `at least 4 standard GKE nodes` if we use **GKE**, which I used.
+
+So we create a cluster with the requirements:
+
+```bash
+gcloud container clusters create dwk-cluster \
+  --zone=europe-west1-b \
+  --cluster-version=latest \
+  --disk-size=32 \
+  --num-nodes=4 \
+  --machine-type=e2-medium
+```
+
+then we install with HELM:
+
+```bash
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+
+helm repo update
+
+# install in istio-system namespace
+helm install istio-base istio/base -n istio-system --set defaultRevision=default --create-namespace
+```
+
+Install the Istio discovery chart which deploys the istiod service:
+
+```bash
+helm install istiod istio/istiod -n istio-system --wait
+```
+
+To deploy the app we follow the steps:
+
+```bash
+kubectl create namespace bookinfo
+
+kubectl apply -n bookinfo -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/bookinfo/platform/kube/bookinfo.yaml
+```
+
+we add a geteway api to be able to access the app:
+
+first enable it in our cluster, as we done previously:
+
+```bash
+gcloud container clusters update dwk-cluster --location=europe-west1-b --gateway-api=standard
+```
+
+then add the gateway api:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/bookinfo/gateway-api/bookinfo-gateway.yaml
+
+kubectl wait --for=condition=programmed gtw bookinfo-gateway
+
+export INGRESS_HOST=$(kubectl get gtw bookinfo-gateway -o jsonpath='{.status.addresses[0].value}')
+export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
+```
+
+then we can access the `GATEWAY_URL/productpage`
+
+To unistall we can use the guides [here](https://istio.io/latest/docs/examples/bookinfo/#before-you-begin) and [here](https://istio.io/latest/docs/setup/install/helm/)
+
+```bash
+curl -sL https://raw.githubusercontent.com/istio/istio/release-1.28/samples/bookinfo/platform/kube/cleanup.sh | bash
+
+helm ls -n istio-system
+
+helm delete istio-ingress -n istio-ingress
+
+kubectl delete namespace istio-ingress
+
+helm delete istiod -n istio-system
+
+helm delete istio-base -n istio-system
+
+kubectl delete namespace istio-system
+```
+
 # Personal Notes
 
 ## Microservices
