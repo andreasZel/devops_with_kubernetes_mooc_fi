@@ -269,6 +269,10 @@ k3d cluster start #start cluster
 
 and to delete `k3d cluster delete`.
 
+#### ⚠️ Cannot access cluster problem 
+
+Because docker uses `docker.internal` as the URL of the cluster, we have to change it to localhost [127.0.0.1] in `kubeconfig` file. 
+
 ## Deployment
 
 By default kubernetes uses `Registries` such as Dockerhub to have access to our images.
