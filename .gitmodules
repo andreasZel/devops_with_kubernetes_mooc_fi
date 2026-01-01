@@ -10,3 +10,6 @@
 [submodule "devops_with_kubernetes_DummySite"]
 	path = devops_with_kubernetes_DummySite
 	url = https://github.com/andreasZel/devops_with_kubernetes_DummySite
+[submodule "devops_with_kubernetes_wikipedia_app"]
+	path = devops_with_kubernetes_wikipedia_app
+	url = https://github.com/andreasZel/devops_with_kubernetes_wikipedia_app
