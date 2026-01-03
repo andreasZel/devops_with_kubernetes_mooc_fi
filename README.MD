@@ -146,6 +146,79 @@ helm delete istio-base -n istio-system
 kubectl delete namespace istio-system
 ```
 
+# Instructions for Exercise 5.6
+
+First we create a cluster with **traefik disabled**:
+
+```bash
+$ k3d cluster create --port 8082:30080@agent:0 -p 8081:80@loadbalancer --agents 2 --k3s-arg "--disable=traefik@server:0"
+```
+
+then we install cert-manager CRDs and components:
+
+```bash
+# Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+# Install Knative Serving core
+kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.13.1/serving-core.yaml
+```
+
+then Install **Kourier networking** and **configure knative to use it**:
+
+```bash
+# install
+kubectl apply -f https://github.com/knative/net-kourier/releases/download/knative-v1.13.0/kourier.yaml
+
+# configure knative
+kubectl patch configmap/config-network \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+```
+
+finally, **Configure Magic DNS (sslip.io)**:
+
+```bash
+kubectl patch configmap/config-domain \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"sslip.io":""}}'
+```
+
+Then we can apply a basic hello world app, by creating a .yaml and applying it:
+
+```yaml
+# hello-world-example.yaml file
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/knative/helloworld-go:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: "World"
+```
+
+we can then test if it is working with, getting the URL and executing 
+curl -H "Host: ${URL}" http://localhost:8081
+
+```bash
+# get the url
+kubectl get ksvc
+NAME    URL                             LATESTCREATED   LATESTREADY   READY   REASON
+hello   http://hello.default.sslip.io   hello-00001     hello-00001   True
+
+# execute command
+curl -H "Host: hello.default.sslip.io" http://localhost:8081
+```
+
 # Personal Notes
 
 ## Microservices
