@@ -63,6 +63,7 @@
 [Exercise 5.2](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.2) 
 [Exercise 5.3](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.3) 
 [Exercise 5.4](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.4) 
+[Exercise 5.6](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.6) 
 
 
 # Instructions for Exercise 5.2
