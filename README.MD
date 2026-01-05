@@ -64,6 +64,7 @@
 [Exercise 5.3](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.3) 
 [Exercise 5.4](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.4) 
 [Exercise 5.6](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.6) 
+[Exercise 5.7](https://github.com/andreasZel/devops_with_kubernetes_mooc_fi/tree/5.7) 
 
 
 # Instructions for Exercise 5.2
@@ -219,6 +220,117 @@ hello   http://hello.default.sslip.io   hello-00001     hello-00001   True
 # execute command
 curl -H "Host: hello.default.sslip.io" http://localhost:8081
 ```
+
+# Exercise 5.8 CNCF Cloud Native Landscape
+
+I only added a map for every product / project used in this module.
+- ${{\color{red} \ red}}$ are the ones used ${{\color{red} \ directly}}$
+- ${{\color{green} \ green}}$ are the ones used ${{\color{green} \ in-directly}}$
+
+The map is as follows:
+
+![CNCF Map](./assets/landscape.png)
+
+## Directly Used / Explicitly Invoked
+
+- Kubernetes
+
+  Used in every repo (MOOC exercises, Log Output, Project Server, Wikipedia App, DummySite) to deploy workloads via manifests (kubectl apply). Managed Deployments, Services, StatefulSets, PVCs, Ingress.
+
+- k3s / k3d (with Docker)
+
+  Local lightweight Kubernetes clusters for testing/development in all repos. Runs workloads, provides local cluster environment for MOOC exercises, Project Server, Wikipedia App, DummySite.
+
+- Helm
+
+  Used to install Istio, Prometheus, Kiali, Knative, and other Helm chart‑based components in MOOC exercises and Project Server.
+
+- Argo CD
+
+  GitOps tool for Project Server deployment; manages live manifests from GitHub repository.
+
+- PostgreSQL
+
+  Deployed as a StatefulSet with PVCs in Project Server, Project Server Config. Provides persistent storage.
+
+- Knative (Serverless)
+
+  Installed via manifests/Helm in MOOC exercises and Project Server for serverless app deployment. Kourier used as networking layer.
+
+- Istio
+
+  Installed via Helm in MOOC exercises and Log Output for service mesh. Handles traffic routing, observability (Envoy sidecars).
+
+- SOPS
+
+  Used in Project Server / Project Server Configuration for secrets encryption.
+
+- Prometheus
+
+  Installed alongside Istio for monitoring and metrics collection (MOOC exercises / Log Output / Project Server).
+
+- Kiali
+
+  Installed for Istio observability; visualizes service mesh traffic (MOOC exercises / Log Output).
+
+- Grafana
+
+  Visualizes Prometheus metrics (MOOC exercises / Project Server).
+
+- Grafana Loki
+
+  Centralized logging backend, integrates with Grafana dashboards (MOOC exercises / Project Server).
+
+- GitHub Actions
+
+  Project Server workflows automate CI/CD (build Docker image, push to registry, deploy to k3d/k3s or GKE).
+
+- Google Cloud / GKE (Free Trial)
+
+  Deployed Kubernetes workloads on GKE cluster. Also Artifact Registry that stores container images and Cloud Storage Bucket that stores persistent data or artifacts.
+
+- Kourier
+
+  Knative networking layer used for serverless workloads in MOOC exercises / Project Server.
+
+- Cert-manager
+
+  Manages TLS certificates for Knative and Ingress endpoints in MOOC exercises / Project Server.
+
+## Indirect / Under-the-Hood Dependencies
+
+- Docker
+
+  Underlying engine for k3d/k3s clusters. Builds container images for Project Server, Wikipedia App, DummySite.
+
+- Containerd
+
+  Container runtime inside k3s/k3d clusters.
+
+- CoreDNS
+
+  Cluster DNS service in k3s/k3d; resolves service names for all pods/workloads.
+
+- CNI Plugins (Flannel / Calico / default)
+
+  Provides Kubernetes cluster networking.
+
+- etcd
+
+  Kubernetes internal key-value store that maintains cluster state.
+
+- Envoy
+
+  Service mesh data-plane proxy used by Istio sidecars for routing.
+
+- NGINX
+
+  Optional ingress controller in MOOC exercises or local k3s/k3d clusters.
+
+- Traefik
+
+  Alternative ingress controller that may be used by default in k3s clusters.
+
 
 # Personal Notes
 
